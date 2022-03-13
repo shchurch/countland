@@ -1,0 +1,106 @@
+#' @importClassesFrom Matrix dgCMatrix
+#'
+NULL
+
+#' An S4 class to represent a countland object
+#'
+#' @slot counts A dgCMatrix with rows as cells, columns as genes.
+#' @slot names_genes A character vector of column names.
+#' @slot names_cells A character vector of row names.
+#' @slot raw_counts The count dgCMatrix as originally loaded.
+#' @slot raw_names_genes The gene name character vector as originally loaded.
+#' @slot raw_names_cells The cell name characgter vector as originally loaded.
+#' @slot subsample A dgCMatrix with row sums equal.
+#' @slot scores_genes A data.frame of gene expression measures.
+#' @slot dots A similarity dgCMatrix of dot products.
+#' @slot embedding An array of two columns (spectral embeddings).
+#' @slot cluster_labels A numeric vector of cluster assignemnts of length n cells.
+#' @slot marker_full A list of data.frames with genes ranked for each cluster.
+#' @slot marker_genes A data.frame of top ten marker genes per cluster.
+#' @slot matrixU A dgCMatrix of dimensions cells x features.
+#' @slot matrixV A dgCMatrix of dimensions genes x features.
+#' @slot matrixLambda A diagonal dgCMatrix of scaling factors.
+#' @slot sharedcounts A similarity dgCMatrix of shared counts between genes.
+#' @slot sum_sharedcounts A dgCMatrix with counts summed within gene clusters.
+#' @slot sum_sharedcounts_all A dgCMatrix with counts summed and including all genes not present in any cluster.
+#' @slot norm_factor A numeric vector of cell normalization factors.
+#' @slot norm_counts A dgCMatrix of normalized counts.
+#' @slot log_counts A dgCMatrix of log trasnformed counts.
+#' @slot scaled_counts A dgCMatrix of counts scaled by gene unit variance.
+#' @slot centered_counts A dgCMatrix of counts centered at zero.
+#'
+#' @export
+setClass("countland", slots=list(counts="dgCMatrix",
+                                 names_genes="character",
+                                 names_cells="character",
+                                 raw_counts="dgCMatrix",
+                                 raw_names_genes="character",
+                                 raw_names_cells="character",
+                                 subsample="dgCMatrix",
+                                 scores_genes="data.frame",
+                                 dots="dgCMatrix",
+                                 embedding="array",
+                                 cluster_labels="numeric",
+                                 marker_full="list",
+                                 marker_genes="data.frame",
+                                 matrixU="dgCMatrix",
+                                 matrixV="dgCMatrix",
+                                 matrixLambda="dgCMatrix",
+                                 sharedcounts="dgCMatrix",
+                                 sum_sharedcounts="dgCMatrix",
+                                 sum_sharedcounts_all="dgCMatrix",
+                                 norm_factor="numeric",
+                                 norm_counts="dgCMatrix",
+                                 log_counts="dgCMatrix",
+                                 scaled_counts="dgCMatrix",
+                                 centered_counts="dgCMatrix")
+)
+
+#' Initialize a countland object
+#'
+#' @param m A sparse dgCMatrix of counts
+#' @param verbose print statements (default=TRUE)
+#'
+#' @return countland object
+#' @export
+#'
+#' @examples
+countland <- function(m,verbose=True){
+    # assertions
+
+    C <- new("countland",counts=m)
+    C@names_genes <- C@counts@Dimnames[[1]]
+    C@names_cells <- C@counts@Dimnames[[2]]
+
+    C@raw_counts <- C@counts
+    C@raw_names_genes <- C@names_genes
+    C@raw_names_cells <- C@names_cells
+
+    #frac nonzero
+    #message
+
+    return(C)
+}
+
+RestoreCounts <- function(C){
+
+    C@counts <- C@raw_counts
+    C@names_genes <- C@counts@Dimnames[[1]]
+    C@names_cells <- C@counts@Dimnames[[2]]
+
+    return(C)
+}
+
+SubsetGenes <- function(C,gene_indices){
+    C@counts <- C@counts[gene_indices,]
+    C@names_genes <- C@names_genes[gene_indices]
+    # message
+    return(C)
+}
+
+SubsetCells <- function(C,cell_indices){
+    C@counts <- C@counts[,cell_indices]
+    C@names_cells <- C@names_cells[cell_indices]
+    # message
+    return(C)
+}
