@@ -24,7 +24,7 @@ An S4 class to represent a countland object
 
 \item{\code{subsample}}{A dgCMatrix with row sums equal.}
 
-\item{\code{scores_genes}}{A data.frame of gene expression measures.}
+\item{\code{gene_scores}}{A data.frame of gene expression measures.}
 
 \item{\code{dots}}{A similarity dgCMatrix of dot products.}
 

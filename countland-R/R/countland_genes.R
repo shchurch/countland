@@ -1,3 +1,11 @@
+#' Internal function for subsampling a column from a sparse matrix.
+#'
+#' @param lm column vector
+#' @param li row positions
+#' @param j column index
+#' @param n_counts count to sample
+#'
+#' @return subsampled column as dgTMatrix components
 SubsampleCol <- function(lm,li,j,n_counts){
     new_counts <- table(sample(rep(li,lm),n_counts,replace=F))
     new_x <- as.numeric(new_counts)
@@ -8,15 +16,27 @@ SubsampleCol <- function(lm,li,j,n_counts){
     return(new_dgt)
 }
 
+#' Split dgCMatrix into column vectors.
+#'
+#' @param m dgCMatrix
+#'
+#' @return list of column vectors, numeric
 listCols<-function(m){
     #converts a sparse Matrix into a list of its columns
-    res<-split(m@x, findInterval(seq_len(nnzero(m)), m@p, left.open=TRUE))
+    res<-split(m@x, findInterval(seq_len(Matrix::nnzero(m)), m@p, left.open=TRUE))
     return(res)
 }
 
+#' Subsample cells to a standard number of counts by randomly sampling observations without replacement.
+#'
+#' @param C countland object
+#' @param n_counts number of counts to subsample, must be larger than min total counts per cell
+#'
+#' @return countland object with slot `subsample`
+#' @export
 Subsample <- function(C,n_counts){
     lms <- listCols(C@counts)
-    lis <- split(C@counts@i, findInterval(seq_len(nnzero(C@counts)), C@counts@p, left.open=T))
+    lis <- split(C@counts@i, findInterval(seq_len(Matrix::nnzero(C@counts)), C@counts@p, left.open=T))
 
     v <- lapply(seq_len(C@counts@Dim[[2]]),function(x){SubsampleCol(lms[[x]],lis[[x]],x,n_counts)})
     vd <- do.call(rbind,lapply(v,as.data.frame))
@@ -31,6 +51,11 @@ Subsample <- function(C,n_counts){
     return(C)
 }
 
+#' Internal function for calculating count index.
+#'
+#' @param lm column vector
+#'
+#' @return count index = largest n where n cells have >= n counts
 CountIndex<-function(lm){
     tb <- table(lm)
     namestb <- as.numeric(names(tb))
@@ -41,6 +66,13 @@ CountIndex<-function(lm){
     }
 }
 
+#' Calculate several scores for count-based gene expression.
+#'
+#' @param C countland object
+#' @param subsample if TRUE, use subsampled counts (default), otherwise use counts
+#'
+#' @return countland object with slot gene_scores
+#' @export
 ScoreGenes <- function(C,subsample=TRUE){
 
     if(subsample==FALSE){
@@ -52,8 +84,6 @@ ScoreGenes <- function(C,subsample=TRUE){
             stop("expecting array of subsampled counts, use subsample() or select subsample=False to use unsampled count matrix")
         }
     }
-
-    # fix columns
 
     fulldf <- setNames(data.frame(C@names_genes,diff(sg@p)),c("names","counts_above0"))
 
@@ -69,7 +99,7 @@ ScoreGenes <- function(C,subsample=TRUE){
     gene_scores <- merge(fulldf,df,by="names",all.x=T)
     gene_scores[is.na(gene_scores)] <- 0
 
-    C@scores_genes <- gene_scores
+    C@gene_scores <- gene_scores
 
     return(C)
 }

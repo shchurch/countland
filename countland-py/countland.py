@@ -165,7 +165,7 @@ class countland:
 
     def SubsetCells(self,cell_indices):
         """
-        Subsets cells using a numpy array of gene indices  
+        Subsets cells using a numpy array of cell indices  
         ...
         
         Parameters

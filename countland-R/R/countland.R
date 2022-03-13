@@ -1,5 +1,6 @@
 #' @importClassesFrom Matrix dgCMatrix
-#'
+#' @import methods
+#' @import stats
 NULL
 
 #' An S4 class to represent a countland object
@@ -11,7 +12,7 @@ NULL
 #' @slot raw_names_genes The gene name character vector as originally loaded.
 #' @slot raw_names_cells The cell name characgter vector as originally loaded.
 #' @slot subsample A dgCMatrix with row sums equal.
-#' @slot scores_genes A data.frame of gene expression measures.
+#' @slot gene_scores A data.frame of gene expression measures.
 #' @slot dots A similarity dgCMatrix of dot products.
 #' @slot embedding An array of two columns (spectral embeddings).
 #' @slot cluster_labels A numeric vector of cluster assignemnts of length n cells.
@@ -37,7 +38,7 @@ setClass("countland", slots=list(counts="dgCMatrix",
                                  raw_names_genes="character",
                                  raw_names_cells="character",
                                  subsample="dgCMatrix",
-                                 scores_genes="data.frame",
+                                 gene_scores="data.frame",
                                  dots="dgCMatrix",
                                  embedding="array",
                                  cluster_labels="numeric",
@@ -58,15 +59,22 @@ setClass("countland", slots=list(counts="dgCMatrix",
 
 #' Initialize a countland object
 #'
-#' @param m A sparse dgCMatrix of counts
+#' @param m A matrix of counts (dense or sparse)
 #' @param verbose print statements (default=TRUE)
 #'
 #' @return countland object
 #' @export
 #'
 #' @examples
-countland <- function(m,verbose=True){
+#' m <- matrix(sample(seq(0,4),prob=c(0.95,0.3,0.1,0.05,0.05),2000,replace=TRUE),ncol=50)
+#' rownames(m) <- paste0("gene",seq_len(nrow(m)))
+#' colnames(m) <- paste0("cell",seq_len(ncol(m)))
+#' C <- countland(m)
+countland <- function(m,verbose=TRUE){
     # assertions
+    if(class(m)[1] != "dgCMatrix"){
+        m <- as(m,"dgCMatrix")
+    }
 
     C <- new("countland",counts=m)
     C@names_genes <- C@counts@Dimnames[[1]]
@@ -76,12 +84,15 @@ countland <- function(m,verbose=True){
     C@raw_names_genes <- C@names_genes
     C@raw_names_cells <- C@names_cells
 
-    #frac nonzero
-    #message
-
     return(C)
 }
 
+#' Restore count matrix to original state
+#'
+#' @param C countland object
+#'
+#' @return countland object
+#' @export
 RestoreCounts <- function(C){
 
     C@counts <- C@raw_counts
@@ -91,6 +102,13 @@ RestoreCounts <- function(C){
     return(C)
 }
 
+#' Subsets genes using a vector of gene indices
+#'
+#' @param C  countland object
+#' @param gene_indices vector of gene index values
+#'
+#' @return countland object, cout matrix updated
+#' @export
 SubsetGenes <- function(C,gene_indices){
     C@counts <- C@counts[gene_indices,]
     C@names_genes <- C@names_genes[gene_indices]
@@ -98,6 +116,13 @@ SubsetGenes <- function(C,gene_indices){
     return(C)
 }
 
+#' Subsets cells using a vecvtor of cell indices
+#'
+#' @param C countland object
+#' @param cell_indices vector of cell index values
+#'
+#' @return countland object, count matrix updated
+#' @export
 SubsetCells <- function(C,cell_indices){
     C@counts <- C@counts[,cell_indices]
     C@names_cells <- C@names_cells[cell_indices]

@@ -4,10 +4,10 @@
 \alias{countland}
 \title{Initialize a countland object}
 \usage{
-countland(m, verbose = True)
+countland(m, verbose = TRUE)
 }
 \arguments{
-\item{m}{A sparse dgCMatrix of counts}
+\item{m}{A matrix of counts (dense or sparse)}
 
 \item{verbose}{print statements (default=TRUE)}
 }
@@ -16,4 +16,10 @@ countland object
 }
 \description{
 Initialize a countland object
+}
+\examples{
+m <- matrix(sample(seq(0,4),prob=c(0.95,0.3,0.1,0.05,0.05),2000,replace=TRUE),ncol=50)
+rownames(m) <- paste0("gene",seq_len(nrow(m)))
+colnames(m) <- paste0("cell",seq_len(ncol(m)))
+C <- countland(m)
 }

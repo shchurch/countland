@@ -1,4 +1,16 @@
-RunIMA <- function(C,features,u_bounds,l_bounds=c(0,0),maxiter=1000000.0,stop_crit=0.0001,subsample=TRUE){
+#' Perofrm integer matrix approximatin on count matrix.
+#'
+#' @param C countland objecvt
+#' @param features target number of features, integer
+#' @param u_bounds upper bounds for U and V matrices, vector of length 2
+#' @param l_bounds lower bounds for U and V matrices, vector of length 2 (default=c(0,0))
+#' @param maxiter maximum number of iterations, integer (default=1000000)
+#' @param stop_crit criterion for stopping based on difference between iterations, numeric (default=0.0001)
+#' @param subsample if TRUE, use subsampled counts (default), otherwise use counts
+#'
+#' @return countland object with slots `matrixU`, `matrixV`, `matrixLambda`
+#' @export
+RunIMA <- function(C,features,u_bounds,l_bounds=c(0,0),maxiter=1000000,stop_crit=0.0001,subsample=TRUE){
 	if(subsample==FALSE){
         sg <- as(t(C@counts),"matrix")
     } else {
@@ -20,7 +32,15 @@ RunIMA <- function(C,features,u_bounds,l_bounds=c(0,0),maxiter=1000000.0,stop_cr
     return(C)
 }
 
-PlotIMA <- function(self,x = 1, y = 2,subsample=TRUE){
+#' Plot cells using integer matrix approximation
+#'
+#' @param C countland object
+#' @param x feature on x-axis, integer (default=1)
+#' @param y feature on y-axis, integer (default=2)
+#' @param subsample if TRUE, use subsampled counts (default), otherwise use counts
+#'
+#' @export
+PlotIMA <- function(C,x = 1, y = 2,subsample=TRUE){
 	if(subsample==FALSE){
         sg <- as(t(C@counts),"matrix")
     } else {
@@ -41,6 +61,14 @@ PlotIMA <- function(self,x = 1, y = 2,subsample=TRUE){
     theme(legend.position = "None")
 }
 
+#' Plot the difference between the observe and reconstructed count matrix using integer matrix approximation and a series of total features.
+#'
+#' @param C countland object
+#' @param max_features maximum number of features to assess, integer
+#' @param u_bounds upper bounds for U and V matrices, vector of length 2
+#' @param subsample if TRUE, use subsampled counts (default), otherwise use counts
+#'
+#' @export
 PlotIMAElbow <- function(C,max_features,u_bounds,subsample=TRUE){
 	if(subsample==FALSE){
         sg <- as(t(C@counts),"matrix")
@@ -67,7 +95,16 @@ PlotIMAElbow <- function(C,max_features,u_bounds,subsample=TRUE){
 
 }
 
-SharedCounts <- function(self,n_clusters,n_cells=100,subsample=T){
+#' Combine groups of genes with similar counts by clustering and summing.
+#'
+#' @param C countland object
+#' @param n_clusters nubmer of clusters
+#' @param n_cells number of cells to sample for gene clustering
+#' @param subsample if TRUE, use subsampled counts (default), otherwise use counts
+#'
+#' @return countland object with slots `shared_counts`, `sum_sharedcounts`, `sum_sharedcounts_all`
+#' @export
+SharedCounts <- function(C,n_clusters,n_cells=100,subsample=T){
 	if(subsample==FALSE){
         sg <- C@counts
     } else {
@@ -87,19 +124,27 @@ SharedCounts <- function(self,n_clusters,n_cells=100,subsample=T){
     sumgenes_mat <- outer(sumgenes,sumgenes,FUN="+")
     C@sharedcounts <- as((sumgenes_mat - manhat) / 2,"dgCMatrix")
 
-    speCal_embed <- ScikitManifoldSpeCalEmbedding(sharedcounts,n_clusters,drop_first=FALSE)
-	speCal_cluster <- kmeans(speCal_embed,n_clusters,nstart=10,iter.max=300,algorithm="Lloyd")
+    spectral_embed <- ScikitManifoldSpectralEmbedding(C@sharedcounts,n_clusters,drop_first=FALSE)
+	spectral_cluster <- kmeans(spectral_embed,n_clusters,nstart=10,iter.max=300,algorithm="Lloyd")
 
 	combX <- sg[filt_gene_index,]
 	restX <- sg[-filt_gene_index,]
 
-	C@sum_sharedcounts  <- do.call(rbind,lapply(seq_len(n_clusters),function(x){apply(combX[speCal_cluster$cluster ==x,],2,sum)}))
-	C@sum_sharedcounts_all <- rbind(sum_sharedcounts,restX)
+	C@sum_sharedcounts  <- do.call(rbind,lapply(seq_len(n_clusters),function(x){apply(combX[spectral_cluster$cluster ==x,],2,sum)}))
+	C@sum_sharedcounts_all <- rbind(C@sum_sharedcounts,restX)
 
 	return(C)
 }
 
-PlotSharedCounts <- function(self,x = 1, y = 2,subsample=TRUE){
+#' Plot cells using matrix of counts summed by clusters of genes.
+#'
+#' @param C countland object
+#' @param x gene cluster to plot on x-axis, integer (default=1)
+#' @param y gene cluster to plot on y-axis, integer (default=2)
+#' @param subsample if TRUE, use subsampled counts (default), otherwise use counts
+#'
+#' @export
+PlotSharedCounts <- function(C,x = 1, y = 2,subsample=TRUE){
     loading <- C@sum_sharedcounts
 
     ld <- setNames(data.frame(loading[x,],loading[y,],C@cluster_labels),c("f1","f2","cluster"))

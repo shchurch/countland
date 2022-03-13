@@ -1,3 +1,13 @@
+#' @import ggplot2
+#'
+NULL
+
+#' Calculate pairwise dot products of counts between all cells.
+#'
+#' @param C countland object
+#'
+#' @return countland object with slot `dots`
+#' @export
 Dots <- function(C){
     # logging
     C@dots <- t(C@counts) %*% C@counts
@@ -5,15 +15,21 @@ Dots <- function(C){
     return(C)
 }
 
-
-ScikitManifoldSpeCalEmbedding <- function(A,n_components,drop_first=TRUE){
+#' Recapitulate scikit.manifold.spectral_embedding from python.
+#'
+#' @param A similarity matrix, dgCMatrix
+#' @param n_components number of eigenvectors to retain, integer
+#' @param drop_first drop constant eigenvector, boolean
+#'
+#' @return matrix of eigenvectors
+ScikitManifoldSpectralEmbedding <- function(A,n_components,drop_first=TRUE){
 	if(drop_first==TRUE){
 		n_components <- n_components+1
 	}
 
 	# calculate normalized graph laplacian using igraph
-	Ai <- as.undirected(graph.adjacency(A,weighted=T))
-	L <- laplacian_matrix(Ai,normalized=T)
+	Ai <- igraph::as.undirected(igraph::graph.adjacency(A,weighted=T))
+	L <- igraph::laplacian_matrix(Ai,normalized=T)
 	L <- L * -1 # flip sign to match scikit
 
 	# calculate diagonal matrix
@@ -23,7 +39,7 @@ ScikitManifoldSpeCalEmbedding <- function(A,n_components,drop_first=TRUE){
 	dd <- sqrt(w)
 
 	# find eigenvectors for graph laplacian with largest magnitude
-	diffusion_map <- eigs(L,n_components,sigma=1,which="LM")$vectors
+	diffusion_map <- RSpectra::eigs(L,n_components,sigma=1,which="LM")$vectors
 	embedding <- diffusion_map / dd
 
 	# flip signs
@@ -40,9 +56,16 @@ ScikitManifoldSpeCalEmbedding <- function(A,n_components,drop_first=TRUE){
 	return(embed)
 }
 
+#' Perform spectral clustering on dot products.
+#'
+#' @param C countland object
+#' @param n_clusters number of clusters, integer
+#'
+#' @return countland object with slot 'cluster_labels'
+#' @export
 Cluster <- function(C,n_clusters){
 	if(length(C@embedding == 0) || length(C@dots != 0)){
-		# speCal embedding of dot products, if you havent already
+		# spectral embedding of dot products, if you havent already
 		# or if you have already clustered and want to recluster
 		if(n_clusters < 3){
 			n_components <- 3
@@ -50,7 +73,7 @@ Cluster <- function(C,n_clusters){
 			n_components <- n_clusters
 		}
 
-		C@embedding <- ScikitManifoldSpeCalEmbedding(C@dots,n_components,drop_first=FALSE)
+		C@embedding <- ScikitManifoldSpectralEmbedding(C@dots,n_components,drop_first=FALSE)
 	}
 
 	clust <- kmeans(C@embedding,n_clusters,nstart=10,iter.max=300,algorithm="Lloyd")
@@ -59,6 +82,11 @@ Cluster <- function(C,n_clusters){
 	return(C)
 }
 
+#' Plot cells using spectral embedding of dot products.
+#'
+#' @param C countland object
+#'
+#' @export
 PlotClusters <- function(C){
 
 	embed <- C@embedding[,2:3]
@@ -72,21 +100,13 @@ PlotClusters <- function(C){
 	# total counts
 }
 
-PlotMarker <- function(C,gene_index){
-
-	embed <- C@embedding[,2:3]
-	embed <- setNames(data.frame(embed),paste("component_",seq_len(2),sep=""))
-	embed$counts <- C@counts[gene_index,]
-
-	ggplot(embed[embed$counts != 0,],aes(x = component_1,y = component_2, color=counts)) +
-	geom_point(data = embed[embed$counts == 0,],size=0.5,color="gray") +
-	geom_point(size=1) +
-	guides(color=guide_legend(title="marker gene counts")) +
-	viridis::scale_color_viridis()
-
-	# total counts
-}
-
+#' Rank the top marker genes for each cluster from spectral clustering.
+#'
+#' @param C countland object
+#' @param method `prop-zero` to rank by proportion of cells that are non-zero (default), or `rank-sums` to rank using Wilcoxon rank-sums test
+#'
+#' @return countland object with slots `marker_genes` and `marker_full`
+#' @export
 RankMarkerGenes <- function(C,method='prop-zero'){
 	cluster <- C@cluster_labels
 	n <- length(C@names_genes)
@@ -122,4 +142,25 @@ RankMarkerGenes <- function(C,method='prop-zero'){
 	C@marker_full <- rankdfs
 
 	return(C)
+}
+
+#' Plot cell using spectral embedding and display counts in a given gene.
+#'
+#' @param C countland object
+#' @param gene_index index value for gene to visualize
+#'
+#' @export
+PlotMarker <- function(C,gene_index){
+
+  embed <- C@embedding[,2:3]
+  embed <- setNames(data.frame(embed),paste("component_",seq_len(2),sep=""))
+  embed$counts <- C@counts[gene_index,]
+
+  ggplot(embed[embed$counts != 0,],aes(x = component_1,y = component_2, color=counts)) +
+    geom_point(data = embed[embed$counts == 0,],size=0.5,color="gray") +
+    geom_point(size=1) +
+    guides(color=guide_legend(title="marker gene counts")) +
+    viridis::scale_color_viridis()
+
+  # total counts
 }
