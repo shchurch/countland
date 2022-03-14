@@ -76,10 +76,10 @@ CountIndex<-function(lm){
 ScoreGenes <- function(C,subsample=TRUE){
 
     if(subsample==FALSE){
-        sg <- t(C@counts)
+        sg <- Matrix::t(C@counts)
     } else {
         if(length(C@subsample)!=0){
-            sg <- t(C@subsample)
+            sg <- Matrix::t(C@subsample)
         } else {
             stop("expecting array of subsampled counts, use subsample() or select subsample=False to use unsampled count matrix")
         }

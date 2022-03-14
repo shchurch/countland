@@ -12,7 +12,7 @@ Cluster(C, n_clusters)
 \item{n_clusters}{number of clusters, integer}
 }
 \value{
-countland object with slot 'cluster_labels'
+countland object with slot \code{embedding}, \code{cluster_labels}
 }
 \description{
 Perform spectral clustering on dot products.

@@ -1,0 +1,166 @@
+# COUNTLAND: R tutorial
+### Samuel H. Church
+
+The following packages are required to complete the tutorial
+
+```{r load}
+library(Seurat)
+library(ggplot2)
+theme_set(theme_classic())
+```
+
+## GET THE DATA
+
+We have used the PBMC3k benchmark dataset.  
+`countland` accepts a datamatrix, sparse or dense (e.g. a `dgCMatrix` like `Seurat`)
+
+```{r data}
+pbmc.data <- Seurat::Read10X(data.dir = "../data/hg19/")
+m <- pbmc.data
+```
+
+## IMPORT COUNTLAND
+The code can be sourced from `countland-R/R/`
+
+```{r source}
+source("R/countland.R")
+source("R/countland_cluster.R")
+source("R/countland_rank_reduction.R")
+source("R/countland_genes.R")
+source("R/countland_utils.R")
+```
+
+## INITIALIZE COUNTLAND OBJECT
+
+```{r init}
+C <- countland(m)
+```
+The count matrix is stored in `C@counts`
+
+```{r count-matrix}
+C@counts[1:10,1:10]
+```
+
+Note that most counts are zero for scRNA-seq data.
+
+## FILTER GENES AND CELLS
+
+```{r filt-gene}
+# row positions (i) represent observations of a gene
+obsgenes <- unique(C@counts@i)
+# sort and index starting at 1 rather tgan 0
+obsgenes <- sort(obsgenes+1)
+C <- SubsetGenes(C,obsgenes)
+```
+```{r filt-cell}
+# column information is stored cumulatively (p)
+# differences give data on counts per cells
+obscells <- diff(C@counts@p)
+# index which cells have observed counts
+obscells <- which(obscells>0)
+C <- SubsetCells(C,obscells)
+```
+
+You can return to the original count matrix at any time using `RestoreCounts()`
+
+## SUBSAMPLE GENES
+
+Cells are not sequenced to standard sequencing depth. This is sometimes a problem for downstream comparisons.  
+
+You can subsample all cells to a standard number of counts using `Subsample()`. The number of counts must not be larger than the minimum number per cell.
+
+```{r subsample}
+set.seed(84095)
+C <- Subsample(C,n_counts=500)
+```
+
+## COMPARE GENES BY COUNTS
+
+Using the subsampled count matrix, we can compare expression using several count-based assessments. These include:
+
+- maximum number of counts observed across cells
+- total counts per gene
+- number of cells with counts above 0, 1, or 10
+- number of unique count values
+- count index = number of _n_ cells with _n_ counts
+
+```{r gene_scores}
+C <- ScoreGenes(C)
+head(C@gene_scores)
+```
+
+## SELECT CERTAIN GENES (AKA PROJECTING ONTO SUBSPACE)
+
+A common practice in single-cell analysis is to only use certain features (genes) for clustering. These can be selected by estimated parameter values, such as high variance. 
+
+Using count-based methods, there may not be a need to filter genes. However, for speed of analysis here, we have focused on the top 500 genes ranked by the number of unique count values per gene.
+
+```{r subspace}
+gene_names <- C@gene_scores[order(-C@gene_scores$"unique_count_values")[1:500],1]
+gene_indices <- which(C@names_genes %in% gene_names)
+C <- SubsetGenes(C,gene_indices)
+C <- SubsetCells(C,which(diff(C@counts@p)>0))
+```
+
+## CLUSTER BY DOT PRODUCTS
+
+The dot (or inner) product is a measure of alignment between vectors. In this case, it tells us how similar two cells are based on the proportions of counts, and scaled by the total counts per cell. A dot product of 0 indicates orthogonal cell vectors (no shared counts), larger values indicate aligned cell vectors.
+
+```{r dots}
+C <- Dots(C)
+```
+    
+Cell populations can be distinguished by clustering the matrix of pairwise dot products (contained in `C@dots`). This matrix is an unbounded affinity matrix. It is symmetric, and contains only integer values above 0. Spectral clustering is appropriate for this type of matrix.
+
+The number of clusters depends on the system in question...
+
+```{r cluster}
+C <- Cluster(C,n_clusters=7)
+```
+
+## VISUALIZING WITH SPECTRAL EMBEDDING OF DOT PRODUCTS
+
+We can use the dot product matrix to visualize cell similarity. This takes advantage of spectral embedding to plot cells in a space with reduced dimensionality.
+
+```{r plot-cluster}
+PlotClusters(C)
+```
+
+## IDENTIFY MARKER GENES
+
+What makes a gene an ideal marker for a cluster may depend on downstream applications. For example, the ideal marker gene might be defined as the gene detected in all of the  cells in a given cluster and none of the rest.
+
+Under this definition, the top marker gene for each cluster can be identified by counting and comparing the number of non-zero cells.
+
+```{r marker-zero}
+C <- RankMarkerGenes(C,method='prop-zero')
+C@marker_genes[(C@marker_genes$cluster_label == 2),]
+```
+
+Alternatively, the top marker genes for each cluster can be identified by ranking genes using the Wilcoxon rank-sum statistic.
+
+```{r marker-ranks}
+C <- RankMarkerGenes(C,method='rank-sums')
+C@marker_genes[(C@marker_genes$cluster_label == 2),]
+```
+
+## GLM-PCA
+
+An alternative approach for comparing cells using untransformed counts is generalized linear model based PCA, or GLM-PCA. This has been described for scRNA-seq data [here](https://doi.org/10.1186/s13059-019-1861-6) and implemented [here](https://github.com/willtownes/glmpca-py).
+
+```{r glmpca}
+#install.packages("glmpca")
+library(glmpca)
+res <- glmpca(as(C@counts,"matrix"),2)
+```
+
+```{r plot-glmpca}
+factors <- res$factors
+glmpca_df <- data.frame("component_1" = factors[,1],"component_2"=factors[,2],"cluster"=C@cluster_labels)
+	ggplot(glmpca_df,aes(x = component_1,y = component_2, color=as.character(cluster))) +
+  geom_point(size=1) +
+  guides(color=guide_legend(title="cluster")) +
+  scale_color_manual(values=color_palette)
+```
+
+

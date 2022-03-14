@@ -2,6 +2,8 @@
 #'
 NULL
 
+color_palette <- c("#8c564b", "#9467bd", "#2ca02c", "#e377c2", "#d62728", "#17becf", "#bcbd22", "#ff7f0e", "#7f7f7f", "#1f77b4")
+
 #' Calculate pairwise dot products of counts between all cells.
 #'
 #' @param C countland object
@@ -9,8 +11,10 @@ NULL
 #' @return countland object with slot `dots`
 #' @export
 Dots <- function(C){
-    # logging
-    C@dots <- t(C@counts) %*% C@counts
+
+    print("Calculating dot products between rows...")
+    C@dots <- Matrix::t(C@counts) %*% C@counts
+    print("    done.")
 
     return(C)
 }
@@ -45,7 +49,7 @@ ScikitManifoldSpectralEmbedding <- function(A,n_components,drop_first=TRUE){
 	# flip signs
 	max_abs_rows <- apply(abs(embedding),2,which.max)
 	signs <- sign(diag(embedding[max_abs_rows,]))
-	embedding_sign <- t(t(embedding) * signs)
+	embedding_sign <- Matrix::t(Matrix::t(embedding) * signs)
 
 	if(drop_first==TRUE){
 		# drop constant eigenvector
@@ -61,10 +65,12 @@ ScikitManifoldSpectralEmbedding <- function(A,n_components,drop_first=TRUE){
 #' @param C countland object
 #' @param n_clusters number of clusters, integer
 #'
-#' @return countland object with slot 'cluster_labels'
+#' @return countland object with slot `embedding`, `cluster_labels`
 #' @export
 Cluster <- function(C,n_clusters){
-	if(length(C@embedding == 0) || length(C@dots != 0)){
+
+  print("Performing spectral clustering on dot products...")
+  	if(length(C@embedding == 0) || length(C@dots != 0)){
 		# spectral embedding of dot products, if you havent already
 		# or if you have already clustered and want to recluster
 		if(n_clusters < 3){
@@ -78,6 +84,7 @@ Cluster <- function(C,n_clusters){
 
 	clust <- kmeans(C@embedding,n_clusters,nstart=10,iter.max=300,algorithm="Lloyd")
 	C@cluster_labels <- clust$cluster
+  print("    done.")
 
 	return(C)
 }
@@ -95,7 +102,7 @@ PlotClusters <- function(C){
 	ggplot(embed,aes(x = component_1,y = component_2, color=as.character(C@cluster_labels))) +
 	geom_point(size=1) +
 	guides(color=guide_legend(title="cluster")) +
-	scale_color_brewer(palette="Paired")
+	scale_color_manual(values=color_palette)
 
 	# total counts
 }
@@ -116,8 +123,8 @@ RankMarkerGenes <- function(C,method='prop-zero'){
 		noncluster_cells <- which(cluster != c)
 		rankdf <- data.frame()
 		if(method=="rank-sums"){
-			cluster_counts <- as(t(C@counts[,cluster_cells]),"matrix")
-			noncluster_counts <- as(t(C@counts[,noncluster_cells]),"matrix")
+			cluster_counts <- as(Matrix::t(C@counts[,cluster_cells]),"matrix")
+			noncluster_counts <- as(Matrix::t(C@counts[,noncluster_cells]),"matrix")
 			res <- matrixTests::col_wilcoxon_twosample(cluster_counts,noncluster_counts,alternative="greater",exact=F)
 			adjpvals <- p.adjust(res$pvalue,method="fdr")
 			rankdf <- setNames(data.frame(C@names_genes,seq_len(n),res$statistic,res$pvalue,adjpvals),c("names","gene_index","statistic","pvalue","adj.pvalue"))

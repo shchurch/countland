@@ -12,7 +12,7 @@ SubsetGenes(C, gene_indices)
 \item{gene_indices}{vector of gene index values}
 }
 \value{
-countland object, cout matrix updated
+countland object, count matrix updated
 }
 \description{
 Subsets genes using a vector of gene indices

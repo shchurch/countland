@@ -80,6 +80,12 @@ countland <- function(m,verbose=TRUE){
     C@names_genes <- C@counts@Dimnames[[1]]
     C@names_cells <- C@counts@Dimnames[[2]]
 
+    print("countland object")
+    print(paste0("Count matrix has ",length(C@names_genes)," genes (rows)"))
+    print(paste0("    and ",length(C@names_cells)," cells (columns)"))
+    print(paste0("The fraction of entries that are nonzero is ",
+                 round(Matrix::nnzero(C@counts)/length(C@counts),4)))
+
     C@raw_counts <- C@counts
     C@raw_names_genes <- C@names_genes
     C@raw_names_cells <- C@names_cells
@@ -107,12 +113,14 @@ RestoreCounts <- function(C){
 #' @param C  countland object
 #' @param gene_indices vector of gene index values
 #'
-#' @return countland object, cout matrix updated
+#' @return countland object, count matrix updated
 #' @export
 SubsetGenes <- function(C,gene_indices){
     C@counts <- C@counts[gene_indices,]
     C@names_genes <- C@names_genes[gene_indices]
-    # message
+
+    print(paste0("New number of genes: ",length(C@names_genes)))
+
     return(C)
 }
 
@@ -126,6 +134,8 @@ SubsetGenes <- function(C,gene_indices){
 SubsetCells <- function(C,cell_indices){
     C@counts <- C@counts[,cell_indices]
     C@names_cells <- C@names_cells[cell_indices]
-    # message
+
+    print(paste0("New number of cells: ",length(C@names_cells)))
+
     return(C)
 }
