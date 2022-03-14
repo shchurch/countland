@@ -74,7 +74,6 @@ class countland:
     """
     
     def validate(self):
-        assert np.linalg.norm(a.X.toarray() - self.counts) < 0.00001, "non-integer counts present"
         assert self.counts.shape[0] == len(self.names_cells), "number of rows differs from number of cell names"
         assert self.counts.shape[1] == len(self.names_genes), "number of columns differs from number of gene names"
         return True
@@ -100,6 +99,7 @@ class countland:
         logging.info("Initializing countland object")
         # parse the AnnData object
         self.counts = a.X.toarray().astype(int)
+        assert np.linalg.norm(a.X.toarray() - self.counts) < 0.00001, "non-integer counts present"
         
         self.names_cells = np.array(a.obs_names)
         self.names_genes = np.array(a.var_names)
