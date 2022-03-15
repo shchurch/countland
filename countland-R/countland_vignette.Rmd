@@ -43,6 +43,19 @@ C@counts[1:10,1:10]
 
 Note that most counts are zero for scRNA-seq data.
 
+## EVALUATE CELL QUALITY
+
+Checking the total number of counts and other measures per cell provides a measure of data quality. 
+
+In addition, it can be helpful to see how many counts are derived from certain genes, such as mitochondrial genes (here those gene names start with "MT-").
+
+```{r cell-score}
+# flag genes starting with MT (mitchondrial genes)
+gene_string <- "^MT-"
+C <- ScoreCells(C,"^MT-")
+head(C@cell_scores)
+```
+
 ## FILTER GENES AND CELLS
 
 ```{r filt-gene}
@@ -52,12 +65,10 @@ obsgenes <- unique(C@counts@i)
 obsgenes <- sort(obsgenes+1)
 C <- SubsetGenes(C,obsgenes)
 ```
+
 ```{r filt-cell}
-# column information is stored cumulatively (p)
-# differences give data on counts per cells
-obscells <- diff(C@counts@p)
 # index which cells have observed counts
-obscells <- which(obscells>0)
+obscells <- which(C@cell_scores$counts_above0 > 0) 
 C <- SubsetCells(C,obscells)
 ```
 
@@ -123,7 +134,7 @@ C <- Cluster(C,n_clusters=7)
 We can use the dot product matrix to visualize cell similarity. This takes advantage of spectral embedding to plot cells in a space with reduced dimensionality.
 
 ```{r plot-cluster}
-PlotClusters(C)
+PlotEmbedding(C)
 ```
 
 ## IDENTIFY MARKER GENES

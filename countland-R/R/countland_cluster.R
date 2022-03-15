@@ -94,7 +94,7 @@ Cluster <- function(C,n_clusters){
 #' @param C countland object
 #'
 #' @export
-PlotClusters <- function(C){
+PlotEmbedding <- function(C){
 
 	embed <- C@embedding[,2:3]
 	embed <- setNames(data.frame(embed),paste("component_",seq_len(2),sep=""))

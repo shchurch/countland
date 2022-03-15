@@ -6,7 +6,7 @@
 Normalize <- function(C){
     # internal
     C@norm_factor <- 10000 / apply(C@counts,2,sum)
-    C@norm_counts <- C@counts * C@norm_factor[col(C@counts)]
+    C@norm_counts <- as(C@counts * C@norm_factor[col(C@counts)],"dgCMatrix")
     return(C)
 }
 
@@ -28,9 +28,10 @@ Log <- function(C){
 #' @return countland object with slots `scaled_counts`
 RescaleVariance <- function(C){
     # internal
-    scaled <- scale(t(C@log_counts),center=F)
+    m <- as(Matrix::t(C@log_counts),"matrix")
+    scaled <- scale(m,center=F)
     scaled[is.na(scaled)] <- 0
-    scaled <- as(t(scaled),"dgCMatrix")
+    scaled <- as(Matrix::t(scaled),"dgCMatrix")
     C@scaled_counts <- scaled
     return(C)
 }
@@ -41,6 +42,10 @@ RescaleVariance <- function(C){
 #'
 #' @return countland object with slots `centered_counts`
 Center <- function(C){
-    C@centered_counts <- as(t(scale(t(C@scaled_counts),scale=F)),"dgCMatrix")
-    return(C)
+  m <- as(Matrix::t(C@log_counts),"matrix")
+  centered <- scale(m,center=T)
+  centered[is.na(centered)] <- 0
+  centered <- as(Matrix::t(centered),"dgCMatrix")
+  C@centered_counts <- centered
+  return(C)
 }

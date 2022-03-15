@@ -55,7 +55,7 @@ class countland:
         Calculates pairwise dot products between all cells based on counts
     Cluster(n_clusters)
         Performs spectral clustering using dot products between cells
-    PlotClusters()
+    PlotEmbedding()
         Plots cell clusters using spectral embedding
     RankMarkerGenes(method='prop-zero')
         Ranks marker genes for each cluster based on expression metrics
@@ -184,6 +184,58 @@ class countland:
         self.names_cells = np.array(self.names_cells)[cell_indices]
         
         logging.info("New number of cells: %s",self.counts.shape[0])
+
+    def _CountIndex(self,c):
+        """
+        Internal function for calculating count index
+        """ 
+        
+        unique,counts = np.unique(c,return_counts=True)
+        return(np.max(unique[counts >= unique]))
+
+    def ScoreCells(self,gene_string=None):
+        """
+        Calculates several scores for counts across cells
+        ...
+        
+        Parameters
+        ----------
+        gene_string : str
+            Regular expression pattern matching gene names of interest (default=None)
+            
+        Adds
+        ----------
+        cell_scores : pd.DataFrame
+            Cell count measurements
+        """ 
+        
+        cts = np.copy(self.counts)
+        names = self.names_cells
+        
+        df = pd.DataFrame(zip(names,
+                              np.max(cts,axis=1),
+                              np.sum(cts,axis=1)),
+                          columns = ["names","max_count_value","total_counts"])
+        df["counts_above0"] = np.count_nonzero(cts,axis=1)
+
+        count1 = np.copy(cts)
+        count1[np.where(count1 <= 1)] = 0 
+        df["counts_above1"] = np.count_nonzero(count1,axis=1)
+        
+        count10 = np.copy(cts)
+        count10[np.where(count10 <= 10)] = 0 
+        df["counts_above10"] = np.count_nonzero(count10,axis=1)
+        
+        df["unique_count_values"] = pd.DataFrame(cts.T).nunique() - 1 # subtract 1 cause 0 doesnt count
+        df["count_index"] = np.apply_along_axis(self._CountIndex,1,cts)
+        
+        if(gene_string is not None):
+            ng = pd.Series(self.names_genes)
+            gene_string_match = ng.str.match(gene_string)
+            new_cts = cts[:,np.where(gene_string_match)[0]]
+            df["feature_counts"] = np.sum(new_cts,axis=1)
+        
+        self.cell_scores = df
         
     def _SubsampleRow(self,row,n_counts):
         """
@@ -220,14 +272,6 @@ class countland:
         
         self.subsample = np.apply_along_axis(self._SubsampleRow,1,self.counts,n_counts=n_counts)
 
-    def _CountIndex(self,c):
-        """
-        Internal function for calculating count index
-        """ 
-        
-        unique,counts = np.unique(c,return_counts=True)
-        return(np.max(unique[counts >= unique]))
-
     def ScoreGenes(self,subsample=True):
         """
         Calculates several scores for count-based gene expression.
@@ -253,7 +297,7 @@ class countland:
         
         names = self.names_genes
         
-        df = pd.DataFrame(zip(self.names_genes,
+        df = pd.DataFrame(zip(names,
                               np.max(sg,axis=0),
                               np.sum(sg,axis=0)),
                           columns = ["names","max_count_value","total_counts"])
@@ -319,7 +363,7 @@ class countland:
         self.cluster_labels = spectral.labels_
         logging.info("    done.")
         
-    def PlotClusters(self):
+    def PlotEmbedding(self):
         """
         Plot cells using spectral embedding of dot products. Clustering results and total counts are displayed
         """ 

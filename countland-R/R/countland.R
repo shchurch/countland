@@ -38,6 +38,7 @@ setClass("countland", slots=list(counts="dgCMatrix",
                                  raw_names_genes="character",
                                  raw_names_cells="character",
                                  subsample="dgCMatrix",
+                                 cell_scores="data.frame",
                                  gene_scores="data.frame",
                                  dots="dgCMatrix",
                                  embedding="array",
@@ -136,6 +137,41 @@ SubsetCells <- function(C,cell_indices){
     C@names_cells <- C@names_cells[cell_indices]
 
     print(paste0("New number of cells: ",length(C@names_cells)))
+
+    return(C)
+}
+
+#' Calculate several scores for counts across cells
+#'
+#' @param C countland object
+#' @param gene_string string with regular expression expression matching gene names of interest (default=NULL)
+#'
+#' @return countland object with slot cell_scores
+#' @export
+ScoreCells <- function(C,gene_string=NULL){
+    cts <- C@counts
+
+    fulldf <- setNames(data.frame(C@names_cells,diff(cts@p)),c("names","counts_above0"))
+
+    cts_cols <- listCols(cts)
+    mx <- vapply(cts_cols,max,1)
+    df <- setNames(data.frame(C@names_cells[as.numeric(names(mx))]),"names")
+    df$max_count_value <- mx
+    df$total_counts <- vapply(cts_cols,sum,1)
+    df$counts_above1 <- vapply(cts_cols,function(x){sum(x>1)},1)
+    df$counts_above10 <- vapply(cts_cols,function(x){sum(x>10)},1)
+    df$unique_count_values <- vapply(cts_cols,function(x){length(unique(x))},1)
+    df$count_index <- vapply(cts_cols,CountIndex,1)
+
+    if(!is.null(gene_string)){
+        gene_string_match <- grep(gene_string,C@names_genes)
+        df$feature_counts <- apply(C@counts[gene_string_match,],2,sum)
+    }
+
+    cell_scores <- merge(fulldf,df,by="names",all.x=T)
+    cell_scores[is.na(cell_scores)] <- 0
+
+    C@cell_scores <- cell_scores
 
     return(C)
 }
