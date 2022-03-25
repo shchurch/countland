@@ -23,14 +23,9 @@ Dots <- function(C){
 #'
 #' @param A similarity matrix, dgCMatrix
 #' @param n_components number of eigenvectors to retain, integer
-#' @param drop_first drop constant eigenvector, boolean
 #'
 #' @return matrix of eigenvectors
-ScikitManifoldSpectralEmbedding <- function(A,n_components,drop_first=TRUE){
-	if(drop_first==TRUE){
-		n_components <- n_components+1
-	}
-
+ScikitManifoldSpectralEmbedding <- function(A,n_components){
 	# calculate normalized graph laplacian using igraph
 	Ai <- igraph::as.undirected(igraph::graph.adjacency(A,weighted=T))
 	L <- igraph::laplacian_matrix(Ai,normalized=T)
@@ -43,7 +38,8 @@ ScikitManifoldSpectralEmbedding <- function(A,n_components,drop_first=TRUE){
 	dd <- sqrt(w)
 
 	# find eigenvectors for graph laplacian with largest magnitude
-	diffusion_map <- RSpectra::eigs(L,n_components,sigma=1,which="LM")$vectors
+	eigenv <- RSpectra::eigs(L,n_components,sigma=1,which="LM")
+	diffusion_map <- eigenv$vectors
 	embedding <- diffusion_map / dd
 
 	# flip signs
@@ -51,38 +47,83 @@ ScikitManifoldSpectralEmbedding <- function(A,n_components,drop_first=TRUE){
 	signs <- sign(diag(embedding[max_abs_rows,]))
 	embedding_sign <- Matrix::t(Matrix::t(embedding) * signs)
 
-	if(drop_first==TRUE){
-		# drop constant eigenvector
-		embed <- embedding_sign[,(n_components-1):n_components]
-	} else {
-		embed <- embedding_sign
-	}
-	return(embed)
+
+	embed <- embedding_sign
+
+	return(list((-1 * eigenv$values),embed))
+}
+
+#' Perform spectral embedding on dot products.
+#'
+#' @param C countland object
+#' @param n_components number of components, integer (default=10)
+#'
+#' @return countland object with slot `embedding`, `eigenvals`
+#' @export
+Embed <- function(C,n_components=10){
+
+  print("Performing spectral embedding on dot products...")
+
+  stopifnot("dot product similarity matrix missing; run Dots() first"= length(C@dots) > 0)
+
+  # set diagonal elements to zero
+  A <- C@dots
+  diag(A) <- 0
+
+  embed <- ScikitManifoldSpectralEmbedding(A,n_components)
+  C@eigenvals <- embed[[1]]
+  C@embedding <- embed[[2]]
+
+  print("    done.")
+
+  return(C)
+}
+
+#' Return the optimal number of clusters with an eigengap heuristic
+#'
+#' @param C countland object
+#' @param min_clusters minimum number of clusters allowed
+#'
+#' @return optimal number of clusters
+#' @export
+FindEigengap <- function(C,min_clusters){
+
+  stopifnot("eigenvalues missing; run Embed() first"= length(C@embedding) > 0)
+
+  optimal_k <- which.max(diff(C@eigenvals))
+  if(optimal_k < min_clusters){optimal_k <- min_clusters}
+
+  return(optimal_k)
 }
 
 #' Perform spectral clustering on dot products.
 #'
 #' @param C countland object
 #' @param n_clusters number of clusters, integer
+#' @param n_components number of compnonets from spectral embedding to use (default NULL, will be set to n_clusters), integer
 #'
-#' @return countland object with slot `embedding`, `cluster_labels`
+#' @return countland object with slot `cluster_labels`
 #' @export
-Cluster <- function(C,n_clusters){
+Cluster <- function(C,n_clusters,n_components=NULL){
 
   print("Performing spectral clustering on dot products...")
-  	if(length(C@embedding == 0) || length(C@dots != 0)){
-		# spectral embedding of dot products, if you havent already
-		# or if you have already clustered and want to recluster
-		if(n_clusters < 3){
-			n_components <- 3
-		} else {
-			n_components <- n_clusters
-		}
 
-		C@embedding <- ScikitManifoldSpectralEmbedding(C@dots,n_components,drop_first=FALSE)
-	}
+  stopifnot("embedding missing; run Embed() first"= length(C@embedding) > 0)
 
-	clust <- kmeans(C@embedding,n_clusters,nstart=10,iter.max=300,algorithm="Lloyd")
+  E <- C@embedding
+  if(is.null(n_components)){
+    n_components <- n_clusters
+  } else {
+    if(ncol(E) < n_components){
+      A <- C@dots
+      diag(A) <- 0
+      E <- ScikitManifoldSpectralEmbedding(A,n_components)[[2]]
+    } else {
+      E <- E[,1:n_components]
+    }
+  }
+
+  clust <- kmeans(E,n_clusters,nstart=10,iter.max=300,algorithm="Lloyd")
 	C@cluster_labels <- clust$cluster
   print("    done.")
 

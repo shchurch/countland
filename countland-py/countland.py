@@ -9,13 +9,27 @@ import matplotlib.cm as cm
 import seaborn as sns
 
 from sklearn.cluster import SpectralClustering
-from sklearn.manifold import SpectralEmbedding
+
+from sklearn.manifold._spectral_embedding import csgraph_laplacian
+from sklearn.manifold._spectral_embedding import _init_arpack_v0
+from sklearn.manifold._spectral_embedding import _set_diag
+from sklearn.manifold._spectral_embedding import _deterministic_vector_sign_flip
+from sklearn.manifold._spectral_embedding import eigsh
+
+from scipy import sparse
+from scipy.linalg import eigh
+from scipy.sparse.linalg import eigsh
+from scipy.sparse.csgraph import connected_components
+from scipy.sparse.csgraph import laplacian as csgraph_laplacian
+
 from sklearn.metrics import pairwise
 from sklearn import preprocessing
 
 from scipy.spatial.distance import cdist
 from scipy.stats import mannwhitneyu
 from statsmodels.stats import multitest
+
+import umap
 
 from integer_matrix_approximation import *
 
@@ -45,7 +59,7 @@ class countland:
         Restores count matrix to original numpy array
     SubsetGenes(gene_indices)
         Keeps only genes listed in numpy array
-    SubsetGenes(gene_indices)
+    SubsetCells(gene_indices)
         Keeps only cells listed in numpy array
     Subsample(n_counts)
         Subsamples cells to standard number of total counts
@@ -78,7 +92,7 @@ class countland:
         assert self.counts.shape[1] == len(self.names_genes), "number of columns differs from number of gene names"
         return True
     
-    def __init__(self,a,verbose=True):
+    def __init__(self,a,remove_empty=True,verbose=True):
         if verbose == True:
             logger = logging.getLogger()
             logger.handlers = []
@@ -96,18 +110,21 @@ class countland:
             
             logger.addHandler(handler)            
             
-        logging.info("Initializing countland object")
+        logging.info("initializing countland object...")
         # parse the AnnData object
         self.counts = a.X.toarray().astype(int)
         assert np.linalg.norm(a.X.toarray() - self.counts) < 0.00001, "non-integer counts present"
         
         self.names_cells = np.array(a.obs_names)
         self.names_genes = np.array(a.var_names)
-        
+ 
+        if(remove_empty==True):
+            self._RemoveEmpty()  
+            
         self.raw_counts = np.copy(self.counts)
         self.raw_names_cells = np.copy(self.names_cells)
         self.raw_names_genes = np.copy(self.names_genes)
-
+            
         self.validate()        
  
     def __str__(self):
@@ -124,7 +141,11 @@ class countland:
         """ 
         n = self.counts.shape[0] * self.counts.shape[1]
         return np.count_nonzero( self.counts ) / n  
-              
+    
+    def _LogGeneCellNumber(self):
+        logging.info("Number of genes: %s",self.counts.shape[1])
+        logging.info("Number of cells: %s",self.counts.shape[0])              
+    
     def RestoreCounts(self):
         """
         Restores count matrix to original state
@@ -138,10 +159,24 @@ class countland:
         self.names_cells = np.copy(self.raw_names_cells)
         self.names_genes = np.copy(self.raw_names_genes)
         
-        logging.info("Number of genes: %s",self.counts.shape[1])
-        logging.info("Number of cells: %s",self.counts.shape[0])
+        self._LogGeneCellNumber()
         
-    def SubsetGenes(self,gene_indices):
+    def _RemoveEmpty(self):
+        """
+        Removes empty rows and columns from the count matrix
+        """ 
+        nonempty_cells = np.count_nonzero(self.counts,1) > 0        
+        nonempty_genes = np.count_nonzero(self.counts,0) > 0        
+        
+        self.counts = self.counts[nonempty_cells,:]
+        self.names_cells = self.names_cells[nonempty_cells]
+        
+        self.counts = self.counts[:,nonempty_genes]
+        self.names_genes = self.names_genes[nonempty_genes]
+        
+        logging.info("removing empty cells and genes...")
+        
+    def SubsetGenes(self,gene_indices,remove_empty=True):
         """
         Subsets genes using a numpy array of gene indices  
         ...
@@ -150,20 +185,25 @@ class countland:
         ----------
         gene_indices : numpy.ndarray
             index values of genes to keep 
-    
+        remove_empty : bool
+            filter out cells and genes with no observed counts (default=TRUE)    
         
         Updates
         ----------
         counts : numpy.ndarray
+
         """ 
         
         assert isinstance(gene_indices,np.ndarray), "expecting numpy array"
         self.counts = self.counts[:,gene_indices]
         self.names_genes = np.array(self.names_genes)[gene_indices]
         
-        logging.info("New number of genes: %s",self.counts.shape[1])
+        if(remove_empty==True):
+            self._RemoveEmpty()    
+            
+        self._LogGeneCellNumber()
 
-    def SubsetCells(self,cell_indices):
+    def SubsetCells(self,cell_indices,remove_empty=True):
         """
         Subsets cells using a numpy array of cell indices  
         ...
@@ -172,18 +212,23 @@ class countland:
         ----------
         gene_indices : numpy.ndarray
             index values of cells to keep 
-    
+        remove_empty : bool
+            filter out cells and genes with no observed counts (default=TRUE)        
         
         Updates
         ----------
         counts : numpy.ndarray
+        
         """ 
         
         assert isinstance(cell_indices,np.ndarray), "expecting numpy array"
         self.counts = self.counts[cell_indices,:]
         self.names_cells = np.array(self.names_cells)[cell_indices]
         
-        logging.info("New number of cells: %s",self.counts.shape[0])
+        if(remove_empty==True):
+            self._RemoveEmpty()
+            
+        self._LogGeneCellNumber()
 
     def _CountIndex(self,c):
         """
@@ -216,15 +261,15 @@ class countland:
                               np.max(cts,axis=1),
                               np.sum(cts,axis=1)),
                           columns = ["names","max_count_value","total_counts"])
-        df["counts_above0"] = np.count_nonzero(cts,axis=1)
+        df["n_features"] = np.count_nonzero(cts,axis=1)
 
         count1 = np.copy(cts)
         count1[np.where(count1 <= 1)] = 0 
-        df["counts_above1"] = np.count_nonzero(count1,axis=1)
+        df["n_features_above1"] = np.count_nonzero(count1,axis=1)
         
         count10 = np.copy(cts)
         count10[np.where(count10 <= 10)] = 0 
-        df["counts_above10"] = np.count_nonzero(count10,axis=1)
+        df["n_features_above10"] = np.count_nonzero(count10,axis=1)
         
         df["unique_count_values"] = pd.DataFrame(cts.T).nunique() - 1 # subtract 1 cause 0 doesnt count
         df["count_index"] = np.apply_along_axis(self._CountIndex,1,cts)
@@ -233,7 +278,7 @@ class countland:
             ng = pd.Series(self.names_genes)
             gene_string_match = ng.str.match(gene_string)
             new_cts = cts[:,np.where(gene_string_match)[0]]
-            df["feature_counts"] = np.sum(new_cts,axis=1)
+            df["feature_match_counts"] = np.sum(new_cts,axis=1)
         
         self.cell_scores = df
         
@@ -301,20 +346,52 @@ class countland:
                               np.max(sg,axis=0),
                               np.sum(sg,axis=0)),
                           columns = ["names","max_count_value","total_counts"])
-        df["counts_above0"] = np.count_nonzero(sg,axis=0)
+        df["n_cells"] = np.count_nonzero(sg,axis=0)
 
         count1 = np.copy(sg)
         count1[np.where(count1 <= 1)] = 0 
-        df["counts_above1"] = np.count_nonzero(count1,axis=0)
+        df["n_cells_above1"] = np.count_nonzero(count1,axis=0)
         
         count10 = np.copy(sg)
         count10[np.where(count10 <= 10)] = 0 
-        df["counts_above10"] = np.count_nonzero(count10,axis=0)
+        df["n_cells_above10"] = np.count_nonzero(count10,axis=0)
         
         df["unique_count_values"] = pd.DataFrame(sg).nunique() - 1 # subtract 1 cause 0 doesnt count
         df["count_index"] = np.apply_along_axis(self._CountIndex,0,sg)
         
         self.gene_scores = df
+    
+    def PlotGeneCounts(self,gene_indices):
+        """
+        Generates a strip plot counts for specified genes
+        ...
+        Parameters
+        ----------
+        gene_indices : numpy.ndarray
+            index values of cells to plot 
+        
+        """
+        appended_data = []
+
+        for g in gene_indices:
+            name = self.names_genes[g]
+            counts = self.counts[:,g].flatten()
+            new_df = pd.DataFrame(zip(counts,np.repeat(name,len(counts))),columns=["counts","names"])
+            appended_data.append(new_df)
+        
+        if(len(gene_indices) < 11):
+            pal = "tab10"
+        else:
+            pal = np.repeat("black",len(gene_indices))
+           
+        appended_data = pd.concat(appended_data) 
+        g = sns.stripplot(data=appended_data,
+                      x='counts',
+                      y='names',
+                      size = 2,
+                      palette=pal,
+                      jitter=0.35)
+        g.set(xlabel="counts",ylabel="gene name")
         
     def Dot(self):
         """
@@ -328,21 +405,104 @@ class countland:
         """         
         
         logging.info("Calculating dot products between rows...")
-        n = self.counts.shape[0] # cells assumed to be rows
 
+        scounts = sparse.csr_matrix(self.counts)
+        sdots = np.dot(scounts,scounts.T)
+        dots = sparse.csr_matrix.toarray(sdots)
+        
+        #n = self.counts.shape[0] # cells assumed to be rows
+        #dots = np.dot(self.counts,self.counts.T)
         #dots = self.counts @ self.counts.T
-        dots = np.zeros((n,n))
-        for i in range(n):
-            for j in range(n):
-                dot = np.dot(self.counts[i,:],self.counts[j,:])
-                dots[i,j] = dot
-                dots[j,i] = dot
+        #dots = np.zeros((n,n))
+        #for i in range(n):
+        #    for j in range(n):
+        #        dot = np.dot(self.counts[i,:],self.counts[j,:])
+        #        dots[i,j] = dot
+        #        dots[j,i] = dot
 
         self.dots = dots
         
         logging.info("    done.")
+    
+    def _mod_spectral_embedding(self,adjacency,n_components=8,drop_first=True):
+        if drop_first:
+            n_components = n_components + 1
+    
+        laplacian, dd = csgraph_laplacian(
+            adjacency, normed=True, return_diag=True
+        )
+        laplacian = _set_diag(laplacian, 1, True)
+        laplacian *= -1
+        
+        v0 = _init_arpack_v0(laplacian.shape[0], None)
+        eigenvals, diffusion_map = eigsh(
+                    laplacian, k=n_components, sigma=1.0, which="LM", tol=0.0, v0=v0
+                )
+    
+        eigenvals = -1 * eigenvals[n_components::-1]
+        embedding = diffusion_map.T[n_components::-1]
+        embedding = embedding / dd
+    
+        embedding = _deterministic_vector_sign_flip(embedding)
+        if drop_first:
+            return embedding[1:n_components].T
+        else:
+            return embedding[:n_components].T, eigenvals
+        
+    def Embed(self,n_components=10):
+        """
+        Performs spectral embedding on dot products using sklearn  
+        ...
+        
+        Parameters
+        ----------
+        n_components: int
+            number of eigenvectors to return (default=10)
+        
+        Adds
+        ----------
+        embedding : numpy.ndarray
+            array of eigenvectors from spectral embedding 
+        eigenvals : numpy.ndarray
+            array of eigenvalus corresponding to eigenvector embedding
+        """ 
 
-    def Cluster(self,n_clusters):
+        assert hasattr(self,"dots"), "expecting similarity matrix of dot product, use Dot() to calculate"
+        
+        logging.info("performing spectral embedding on dot products...")
+        A = self.dots.copy()
+        np.fill_diagonal(A,0)
+        
+        # test that this returns the same as sklearn spectral embedding
+        #    cse = C._mod_spectral_embedding(A,2,True)
+        #    se = SpectralEmbedding(affinity='precomputed').fit(A)
+        #    sse = se.embedding_
+        #    print(np.linalg.norm(cse,'fro') - np.linalg.norm(sse,'fro')
+      
+        embedding, eigenvals = self._mod_spectral_embedding(A,n_components,False)
+        self.embedding = embedding
+        self.eigenvals = eigenvals
+        logging.info("    done.")        
+       
+    def PlotEigengap(self):
+        """
+        Plots eigenvalues to investigate the optimal number of clusters  
+        ...
+        
+        """  
+        assert hasattr(self,"eigenvals"), "expecting eigenvalues from spectral embedding, use Embed() to calculate"
+
+        e = self.eigenvals
+        g = sns.scatterplot(x = range(1,len(e)+1), y = e, color = "black")
+        g.set(xlabel="index",ylabel="eigenvalue")
+        
+        #optimal_k = np.argmax(np.diff(C.eigevals)) + 1
+        #if(optimal_k) < min_clusters:
+        #    optimal_k = min_clusters
+        
+        #return(optimal_k) 
+        
+    def Cluster(self,n_clusters,n_components=None):
         """
         Performs spectral clustering on dot products using sklearn  
         ...
@@ -351,7 +511,10 @@ class countland:
         ----------
         n_clusters: int
             dimension of projection space
-        
+        n_components: int
+            number of components from spectral embedding on which to use clustering
+            (default = None, will be set to n_clusters)
+            
         Adds
         ----------
         cluster_labels : numpy.ndarray
@@ -359,7 +522,10 @@ class countland:
         """ 
         
         logging.info("performing spectral clustering on dot products...")
-        spectral = SpectralClustering(n_clusters=n_clusters, affinity='precomputed').fit(self.dots)
+        A = self.dots.copy()
+        np.fill_diagonal(A,0)
+            
+        spectral = SpectralClustering(n_clusters=n_clusters, n_components=n_components, affinity='precomputed').fit(A)
         self.cluster_labels = spectral.labels_
         logging.info("    done.")
         
@@ -368,14 +534,14 @@ class countland:
         Plot cells using spectral embedding of dot products. Clustering results and total counts are displayed
         """ 
         
-        se = SpectralEmbedding(n_components=2, affinity='precomputed').fit(self.dots)
-        self.spectral_embedding = se.embedding_
+        assert hasattr(self,"embedding"), "expecting eigenvectors from spectral embedding, use Embed() to calculate"
+        assert hasattr(self,"cluster_labels"), "expecting cluster labels from spectral clustering, use Cluster() to calculate"
         
         fig, axes = plt.subplots(ncols=2, nrows=1, figsize=(8,4))
 
         sns.scatterplot(ax = axes[0],
-                        x = self.spectral_embedding[:,0],
-                        y = self.spectral_embedding[:,1],
+                        x = self.embedding[:,1],
+                        y = self.embedding[:,2],
                         hue = self.cluster_labels, 
                         s = 10, 
                         palette = "tab10", 
@@ -385,8 +551,8 @@ class countland:
         axes[0].yaxis.set_ticklabels([])
         axes[0].set(title="clusters")
         sns.scatterplot(ax = axes[1], 
-                        x = self.spectral_embedding[:,0], 
-                        y = self.spectral_embedding[:,1], 
+                        x = self.embedding[:,1], 
+                        y = self.embedding[:,2], 
                         hue = np.sum(self.counts,axis=1), 
                         s = 10, 
                         palette = "viridis", 
@@ -397,7 +563,44 @@ class countland:
         axes[1].set(title="total counts")
 
         fig.tight_layout()
+        return(self)
+    
+    def PlotUMAP(self,subsample=True,min_dist=0.5):
 
+        assert hasattr(self,"cluster_labels"), "expecting cluster labels from spectral clustering, use Cluster() to calculate"
+
+        if(subsample==True):
+            c = self.subsample
+        else:
+            c = self.counts
+            
+        u = umap.UMAP(min_dist=min_dist)
+        embed = u.fit_transform(c)
+        
+        self.umap = embed
+        
+        fig, axes = plt.subplots(ncols=2, nrows=1, figsize=(8,4))
+        
+        sns.scatterplot(ax = axes[0],
+            x = embed[:, 0],
+            y = embed[:, 1],
+            hue=self.cluster_labels,
+            palette = "tab10",
+            s = 10,
+            linewidth=0)
+        sns.scatterplot(ax = axes[1],
+            x = embed[:, 0],
+            y = embed[:, 1],
+            hue=np.sum(self.counts,axis=1),
+            s = 10,
+            linewidth=0,
+            palette="viridis")
+        axes[0].legend(loc=(1.04,0))
+        axes[1].legend(loc=(1.04,0))
+        fig.tight_layout()
+
+        return(self)
+        
     def RankMarkerGenes(self,method='prop-zero',subsample=True):
         """
         Ranks the top marker gene for each cluster from spectral clustering
@@ -439,12 +642,12 @@ class countland:
             if(method=="rank-sums"):
                 res = np.zeros((n,2))
                 for i in range(n):
-                    res[i,:] = mannwhitneyu(self.counts[noncluster_cells,i].ravel(),self.counts[cluster_cells,i].ravel(),alternative="greater")
+                    res[i,:] = mannwhitneyu(self.counts[cluster_cells,i].ravel(),self.counts[noncluster_cells,i].ravel(),alternative="greater")
             
                 df = pd.DataFrame(res,columns=['test-statistic','p-value']) 
                 df['adjusted-p-value'] = multitest.fdrcorrection(res[:,1])[1]
                 df['significant diff.'] = multitest.fdrcorrection(res[:,1])[0]
-                df['rank'] = df['test-statistic'].rank(ascending=True).astype(np.uint)
+                df['rank'] = df['test-statistic'].rank(ascending=False).astype(np.uint)
             
             elif(method=="prop-zero"):
                 cluster_positive = np.count_nonzero(self.counts[cluster_cells[0],:],axis=0)
@@ -488,8 +691,8 @@ class countland:
         fig, axes = plt.subplots(1,2,figsize=(8,4))
 
         sns.scatterplot(ax = axes[0], 
-            x = self.spectral_embedding[:,0],
-            y = self.spectral_embedding[:,1], 
+            x = self.embedding[:,1],
+            y = self.embedding[:,2], 
             hue = self.cluster_labels, 
             palette = "tab10", 
             s = 10,
@@ -499,14 +702,14 @@ class countland:
         axes[0].yaxis.set_ticklabels([])
         axes[0].set(title="clusters")
         sns.scatterplot(ax = axes[1],
-            x = self.spectral_embedding[:,0], 
-            y = self.spectral_embedding[:,1], 
+            x = self.embedding[:,1], 
+            y = self.embedding[:,2], 
             color = "#CFCFCF",
             s = 5,
             linewidth=0)
         sns.scatterplot(ax = axes[1],
-            x = self.spectral_embedding[marker_counts > 0,0], 
-            y = self.spectral_embedding[marker_counts > 0,1], 
+            x = self.embedding[marker_counts > 0,1], 
+            y = self.embedding[marker_counts > 0,2], 
             hue = marker_counts[marker_counts > 0],
             palette = "viridis",
             s = 10,
@@ -797,5 +1000,5 @@ class countland:
         """        
         # logarithmize as in scanpy.pp.log1p
         print("Centering counts...")
-        self.centered_counts = preprocessing.scale(self.scaled_counts,axis=0,with_std = False)
+        self.centered_counts = preprocessing.scale(self.log_counts,axis=0)
         print("    done.")  

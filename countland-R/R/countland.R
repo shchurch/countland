@@ -12,8 +12,10 @@ NULL
 #' @slot raw_names_genes The gene name character vector as originally loaded.
 #' @slot raw_names_cells The cell name characgter vector as originally loaded.
 #' @slot subsample A dgCMatrix with row sums equal.
+#' @slot cell_scores A data.frame of cell count measures.
 #' @slot gene_scores A data.frame of gene expression measures.
 #' @slot dots A similarity dgCMatrix of dot products.
+#' @slot eigenvals An vector of eigenvalues from spectral embedding
 #' @slot embedding An array of two columns (spectral embeddings).
 #' @slot cluster_labels A numeric vector of cluster assignemnts of length n cells.
 #' @slot marker_full A list of data.frames with genes ranked for each cluster.
@@ -41,6 +43,7 @@ setClass("countland", slots=list(counts="dgCMatrix",
                                  cell_scores="data.frame",
                                  gene_scores="data.frame",
                                  dots="dgCMatrix",
+                                 eigenvals="numeric",
                                  embedding="array",
                                  cluster_labels="numeric",
                                  marker_full="list",
@@ -61,6 +64,7 @@ setClass("countland", slots=list(counts="dgCMatrix",
 #' Initialize a countland object
 #'
 #' @param m A matrix of counts (dense or sparse)
+#' @param remove_empty filter out cells and genes with no observed counts (default=TRUE)
 #' @param verbose print statements (default=TRUE)
 #'
 #' @return countland object
@@ -71,7 +75,7 @@ setClass("countland", slots=list(counts="dgCMatrix",
 #' rownames(m) <- paste0("gene",seq_len(nrow(m)))
 #' colnames(m) <- paste0("cell",seq_len(ncol(m)))
 #' C <- countland(m)
-countland <- function(m,verbose=TRUE){
+countland <- function(m,remove_empty=TRUE,verbose=TRUE){
     # assertions
     if(class(m)[1] != "dgCMatrix"){
         m <- as(m,"dgCMatrix")
@@ -82,16 +86,28 @@ countland <- function(m,verbose=TRUE){
     C@names_cells <- C@counts@Dimnames[[2]]
 
     print("countland object")
-    print(paste0("Count matrix has ",length(C@names_genes)," genes (rows)"))
-    print(paste0("    and ",length(C@names_cells)," cells (columns)"))
-    print(paste0("The fraction of entries that are nonzero is ",
+    if(remove_empty==TRUE){
+        C <- RemoveEmpty(C)
+    }
+    print(paste0("the count matrix has ",nrow(C@counts)," genes (rows)"))
+    print(paste0("    and ",ncol(C@counts)," cells (columns)"))
+    print(paste0("the fraction of entries that are nonzero is ",
                  round(Matrix::nnzero(C@counts)/length(C@counts),4)))
-
     C@raw_counts <- C@counts
     C@raw_names_genes <- C@names_genes
     C@raw_names_cells <- C@names_cells
 
     return(C)
+}
+
+#' Restore count matrix to original state
+#'
+#' @param C countland object
+#'
+#' @return countland object
+LogGeneNumber <- function(C){
+    print(paste0("new number of genes: ",nrow(C@counts)))
+    print(paste0("new number of cells: ",ncol(C@counts)))
 }
 
 #' Restore count matrix to original state
@@ -105,6 +121,26 @@ RestoreCounts <- function(C){
     C@counts <- C@raw_counts
     C@names_genes <- C@counts@Dimnames[[1]]
     C@names_cells <- C@counts@Dimnames[[2]]
+    LogGeneNumber(C)
+
+    return(C)
+}
+
+#' Internal function to remove empty columns and rows
+#'
+#' @param C  countland object
+#'
+#' @return countland object, count matrix updated
+#' @export
+RemoveEmpty <- function(C){
+
+    cell_indices <- which(diff(C@counts@p)>0)
+    gene_indices <- sort(unique(C@counts@i))+1
+    C@counts <- C@counts[gene_indices,]
+    C@names_genes <- C@names_genes[gene_indices]
+    C@counts <- C@counts[,cell_indices]
+    C@names_cells <- C@names_cells[cell_indices]
+    print("after removing empty cells and genes,")
 
     return(C)
 }
@@ -113,14 +149,21 @@ RestoreCounts <- function(C){
 #'
 #' @param C  countland object
 #' @param gene_indices vector of gene index values
+#' @param remove_empty filter out cells and genes with no observed counts (default=TRUE)
 #'
 #' @return countland object, count matrix updated
 #' @export
-SubsetGenes <- function(C,gene_indices){
+SubsetGenes <- function(C,gene_indices,remove_empty=TRUE){
     C@counts <- C@counts[gene_indices,]
     C@names_genes <- C@names_genes[gene_indices]
 
-    print(paste0("New number of genes: ",length(C@names_genes)))
+    if(remove_empty==TRUE){
+        print("after subsetting and removing empty cells and genes,")
+        C <- RemoveEmpty(C)
+        LogGeneNumber(C)
+    } else {
+        LogGeneNumber(C)
+    }
 
     return(C)
 }
@@ -129,14 +172,20 @@ SubsetGenes <- function(C,gene_indices){
 #'
 #' @param C countland object
 #' @param cell_indices vector of cell index values
+#' @param remove_empty filter out cells and genes with no observed counts (default=TRUE)
 #'
 #' @return countland object, count matrix updated
 #' @export
-SubsetCells <- function(C,cell_indices){
+SubsetCells <- function(C,cell_indices,remove_empty=TRUE){
     C@counts <- C@counts[,cell_indices]
     C@names_cells <- C@names_cells[cell_indices]
-
-    print(paste0("New number of cells: ",length(C@names_cells)))
+    if(remove_empty==TRUE){
+        print("after subsetting and removing empty cells and genes,")
+        C <- RemoveEmpty(C)
+        LogGeneNumber(C)
+    } else {
+        LogGeneNumber(C)
+    }
 
     return(C)
 }
