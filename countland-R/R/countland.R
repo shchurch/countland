@@ -17,6 +17,7 @@ NULL
 #' @slot dots A similarity dgCMatrix of dot products.
 #' @slot eigenvals An vector of eigenvalues from spectral embedding
 #' @slot embedding An array of two columns (spectral embeddings).
+#' @slot uamp An array of two columns (UMAP embeddings).
 #' @slot cluster_labels A numeric vector of cluster assignemnts of length n cells.
 #' @slot marker_full A list of data.frames with genes ranked for each cluster.
 #' @slot marker_genes A data.frame of top ten marker genes per cluster.
@@ -45,6 +46,7 @@ setClass("countland", slots=list(counts="dgCMatrix",
                                  dots="dgCMatrix",
                                  eigenvals="numeric",
                                  embedding="array",
+                                 umap="array",
                                  cluster_labels="numeric",
                                  marker_full="list",
                                  marker_genes="data.frame",
@@ -93,6 +95,7 @@ countland <- function(m,remove_empty=TRUE,verbose=TRUE){
     print(paste0("    and ",ncol(C@counts)," cells (columns)"))
     print(paste0("the fraction of entries that are nonzero is ",
                  round(Matrix::nnzero(C@counts)/length(C@counts),4)))
+
     C@raw_counts <- C@counts
     C@raw_names_genes <- C@names_genes
     C@raw_names_cells <- C@names_cells
@@ -200,21 +203,25 @@ SubsetCells <- function(C,cell_indices,remove_empty=TRUE){
 ScoreCells <- function(C,gene_string=NULL){
     cts <- C@counts
 
-    fulldf <- setNames(data.frame(C@names_cells,diff(cts@p)),c("names","counts_above0"))
+    fulldf <- setNames(data.frame(C@names_cells,diff(cts@p)),c("names","n_features"))
 
     cts_cols <- listCols(cts)
     mx <- vapply(cts_cols,max,1)
     df <- setNames(data.frame(C@names_cells[as.numeric(names(mx))]),"names")
     df$max_count_value <- mx
     df$total_counts <- vapply(cts_cols,sum,1)
-    df$counts_above1 <- vapply(cts_cols,function(x){sum(x>1)},1)
-    df$counts_above10 <- vapply(cts_cols,function(x){sum(x>10)},1)
+    df$n_features_above1 <- vapply(cts_cols,function(x){sum(x>1)},1)
+    df$n_features_above10 <- vapply(cts_cols,function(x){sum(x>10)},1)
     df$unique_count_values <- vapply(cts_cols,function(x){length(unique(x))},1)
     df$count_index <- vapply(cts_cols,CountIndex,1)
 
     if(!is.null(gene_string)){
         gene_string_match <- grep(gene_string,C@names_genes)
-        df$feature_counts <- apply(C@counts[gene_string_match,],2,sum)
+        if(length(gene_string_match) == 1){
+          df$feature_match_counts <- C@counts[gene_string_match,]
+        } else {
+          df$feature_match_counts <- apply(C@counts[gene_string_match,],2,sum)
+        }
     }
 
     cell_scores <- merge(fulldf,df,by="names",all.x=T)

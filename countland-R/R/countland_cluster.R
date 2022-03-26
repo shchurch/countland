@@ -1,5 +1,5 @@
 #' @import ggplot2
-#'
+#' @import umap
 NULL
 
 color_palette <- c("#8c564b", "#9467bd", "#2ca02c", "#e377c2", "#d62728", "#17becf", "#bcbd22", "#ff7f0e", "#7f7f7f", "#1f77b4")
@@ -10,7 +10,7 @@ color_palette <- c("#8c564b", "#9467bd", "#2ca02c", "#e377c2", "#d62728", "#17be
 #'
 #' @return countland object with slot `dots`
 #' @export
-Dots <- function(C){
+Dot <- function(C){
 
     print("Calculating dot products between rows...")
     C@dots <- Matrix::t(C@counts) %*% C@counts
@@ -79,22 +79,32 @@ Embed <- function(C,n_components=10){
   return(C)
 }
 
-#' Return the optimal number of clusters with an eigengap heuristic
+#' Plots eigenvalues to investigate the optimal number of clusters
 #'
 #' @param C countland object
-#' @param min_clusters minimum number of clusters allowed
 #'
-#' @return optimal number of clusters
 #' @export
-FindEigengap <- function(C,min_clusters){
+PlotEigengap <- function(C){
 
-  stopifnot("eigenvalues missing; run Embed() first"= length(C@embedding) > 0)
+  stopifnot("eigenvalues missing; run Embed() first"= length(C@eigenvals) > 0)
 
-  optimal_k <- which.max(diff(C@eigenvals))
-  if(optimal_k < min_clusters){optimal_k <- min_clusters}
+  e <- C@eigenvals
+  edf <- data.frame(x = seq_len(length(e)), y = e)
+  ggplot(edf,aes(x = x, y = y)) + geom_point() +
+    xlab("index") +
+    ylab("eigenvalues") +
+    scale_x_continuous(breaks=seq_len(length(e)))
 
-  return(optimal_k)
+  #optimal_k <- which.max(diff(C@eigenvals))
+  #if(optimal_k < min_clusters){optimal_k <- min_clusters}
+  #return(optimal_k)
 }
+
+#optimal_k = np.argmax(np.diff(C.eigevals)) + 1
+#if(optimal_k) < min_clusters:
+#    optimal_k = min_clusters
+
+#return(optimal_k)
 
 #' Perform spectral clustering on dot products.
 #'
@@ -112,17 +122,18 @@ Cluster <- function(C,n_clusters,n_components=NULL){
 
   E <- C@embedding
   if(is.null(n_components)){
-    n_components <- n_clusters
-  } else {
-    if(ncol(E) < n_components){
-      A <- C@dots
-      diag(A) <- 0
-      E <- ScikitManifoldSpectralEmbedding(A,n_components)[[2]]
-    } else {
-      E <- E[,1:n_components]
-    }
+    comp <- n_clusters
   }
 
+  if(ncol(E) < comp){
+    A <- C@dots
+    diag(A) <- 0
+    E <- ScikitManifoldSpectralEmbedding(A,comp)[[2]]
+  } else {
+    E <- E[,1:comp]
+  }
+
+  print(comp)
   clust <- kmeans(E,n_clusters,nstart=10,iter.max=300,algorithm="Lloyd")
 	C@cluster_labels <- clust$cluster
   print("    done.")
@@ -137,16 +148,45 @@ Cluster <- function(C,n_clusters,n_components=NULL){
 #' @export
 PlotEmbedding <- function(C){
 
+  stopifnot("embedding missing; run Embed() first"= length(C@embedding) > 0)
+
 	embed <- C@embedding[,2:3]
 	embed <- setNames(data.frame(embed),paste("component_",seq_len(2),sep=""))
 
-	ggplot(embed,aes(x = component_1,y = component_2, color=as.character(C@cluster_labels))) +
+	ggplot2::ggplot(embed,aes(x = component_1,y = component_2, color=as.character(C@cluster_labels))) +
 	geom_point(size=1) +
 	guides(color=guide_legend(title="cluster")) +
 	scale_color_manual(values=color_palette)
-
-	# total counts
 }
+
+#' Plot cells using UMAP on untransformed counts.
+#'
+#' @param C countland object
+#' @param subsample if TRUE, use subsampled counts (default), otherwise use counts
+#' @param min_dist minimum distance parameter for UMAP (default=0.5)
+#'
+#' @return countland object with slot `umap`
+#' @export
+PlotUMAP <- function(C,subsample=TRUE,min_dist=0.5){
+
+  stopifnot("cluster labels missing; run Cluster() first"= length(C@cluster_labels) > 0)
+
+  custom.config = umap::umap.defaults
+  custom.config$min_dist = min_dist
+  embed <- umap::umap(t(as(C@subsample,"matrix")),config = custom.config)
+  u1 <- embed$layout[,1]
+  u2 <- embed$layout[,2]
+  cl_c <- as.character(C@cluster_labels)
+  gdf <- data.frame("UMAP1" = u1, "UMAP2" = u2, "countland_clusters" = as.character(cl_c))
+
+  ggplot2::ggplot(gdf,aes(x = UMAP1, y = UMAP2, color=countland_clusters)) +
+    geom_point(size=1) +
+    guides(color=guide_legend(title="cluster")) +
+    scale_color_manual(values=color_palette)
+  #C@umap <- embed$layout
+  #return(C)
+}
+
 
 #' Rank the top marker genes for each cluster from spectral clustering.
 #'

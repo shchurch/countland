@@ -1,3 +1,6 @@
+color_palette <- c("#8c564b", "#9467bd", "#2ca02c", "#e377c2", "#d62728", "#17becf", "#bcbd22", "#ff7f0e", "#7f7f7f", "#1f77b4")
+
+
 #' Internal function for subsampling a column from a sparse matrix.
 #'
 #' @param lm column vector
@@ -85,14 +88,14 @@ ScoreGenes <- function(C,subsample=TRUE){
         }
     }
 
-    fulldf <- setNames(data.frame(C@names_genes,diff(sg@p)),c("names","counts_above0"))
+    fulldf <- setNames(data.frame(C@names_genes,diff(sg@p)),c("names","n_cells"))
 
     mx <- vapply(listCols(sg),max,1)
     df <- setNames(data.frame(C@names_genes[as.numeric(names(mx))]),"names")
     df$max_count_value <- mx
     df$total_counts <- vapply(listCols(sg),sum,1)
-    df$counts_above1 <- vapply(listCols(sg),function(x){sum(x>1)},1)
-    df$counts_above10 <- vapply(listCols(sg),function(x){sum(x>10)},1)
+    df$n_cells_above1 <- vapply(listCols(sg),function(x){sum(x>1)},1)
+    df$n_cells_above10 <- vapply(listCols(sg),function(x){sum(x>10)},1)
     df$unique_count_values <- vapply(listCols(sg),function(x){length(unique(x))},1)
     df$count_index <- vapply(listCols(sg),CountIndex,1)
 
@@ -102,4 +105,26 @@ ScoreGenes <- function(C,subsample=TRUE){
     C@gene_scores <- gene_scores
 
     return(C)
+}
+
+#' Generate a strip plot for counts across selected genes
+#'
+#' @param C countland object
+#' @param gene_indices vector of gene index values
+#'
+#' @export
+PlotGeneCounts <- function(C,gene_indices){
+    counts <- t(as(C@counts[gene_indices,],"matrix"))
+    new_counts <- do.call(rbind,lapply(seq_len(ncol(counts)),function(x){data.frame("name" = colnames(counts)[x], "counts" = counts[,x])}))
+    if(length(gene_indices) < 10){
+        pal <- color_palette[1:length(gene_indices)]
+    } else {
+        pal <- rep("black",length(gene_indices))
+    }
+    ggplot(new_counts,aes(y=name,x=as.numeric(counts),color=name)) +
+        geom_jitter(size=0.5,position = position_jitter(width=0)) +
+        scale_color_manual(values=pal) +
+        xlab("counts") +
+        ylab("gene name") +
+        theme(legend.position = "none")
 }
