@@ -4,7 +4,7 @@
 \alias{PlotSharedCounts}
 \title{Plot cells using matrix of counts summed by clusters of genes.}
 \usage{
-PlotSharedCounts(C, x = 1, y = 2, subsample = TRUE)
+PlotSharedCounts(C, x = 1, y = 2)
 }
 \arguments{
 \item{C}{countland object}
@@ -12,8 +12,6 @@ PlotSharedCounts(C, x = 1, y = 2, subsample = TRUE)
 \item{x}{gene cluster to plot on x-axis, integer (default=1)}
 
 \item{y}{gene cluster to plot on y-axis, integer (default=2)}
-
-\item{subsample}{if TRUE, use subsampled counts (default), otherwise use counts}
 }
 \description{
 Plot cells using matrix of counts summed by clusters of genes.

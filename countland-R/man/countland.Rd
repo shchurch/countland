@@ -4,10 +4,12 @@
 \alias{countland}
 \title{Initialize a countland object}
 \usage{
-countland(m, verbose = TRUE)
+countland(m, remove_empty = TRUE, verbose = TRUE)
 }
 \arguments{
 \item{m}{A matrix of counts (dense or sparse)}
+
+\item{remove_empty}{filter out cells and genes with no observed counts (default=TRUE)}
 
 \item{verbose}{print statements (default=TRUE)}
 }

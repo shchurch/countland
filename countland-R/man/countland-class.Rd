@@ -24,9 +24,13 @@ An S4 class to represent a countland object
 
 \item{\code{subsample}}{A dgCMatrix with row sums equal.}
 
+\item{\code{cell_scores}}{A data.frame of cell count measures.}
+
 \item{\code{gene_scores}}{A data.frame of gene expression measures.}
 
 \item{\code{dots}}{A similarity dgCMatrix of dot products.}
+
+\item{\code{eigenvals}}{An vector of eigenvalues from spectral embedding}
 
 \item{\code{embedding}}{An array of two columns (spectral embeddings).}
 

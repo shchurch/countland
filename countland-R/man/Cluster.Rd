@@ -4,15 +4,17 @@
 \alias{Cluster}
 \title{Perform spectral clustering on dot products.}
 \usage{
-Cluster(C, n_clusters)
+Cluster(C, n_clusters, n_components = NULL)
 }
 \arguments{
 \item{C}{countland object}
 
 \item{n_clusters}{number of clusters, integer}
+
+\item{n_components}{number of compnonets from spectral embedding to use (default NULL, will be set to n_clusters), integer}
 }
 \value{
-countland object with slot \code{embedding}, \code{cluster_labels}
+countland object with slot \code{cluster_labels}
 }
 \description{
 Perform spectral clustering on dot products.

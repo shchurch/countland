@@ -1,3 +1,5 @@
+color_palette <- c("#8c564b", "#9467bd", "#2ca02c", "#e377c2", "#d62728", "#17becf", "#bcbd22", "#ff7f0e", "#7f7f7f", "#1f77b4")
+
 #' Perofrm integer matrix approximatin on count matrix.
 #'
 #' @param C countland objecvt
@@ -56,6 +58,7 @@ PlotIMA <- function(C,x = 1, y = 2,subsample=TRUE){
     ld <- setNames(data.frame(loading[,x],loading[,y],C@cluster_labels),c("f1","f2","cluster"))
     ggplot(ld,aes(x = f1, y = f2, color = as.character(cluster))) +
     geom_point(size=1) +
+    scale_color_manual(values = color_palette) +
     xlab(paste("feature: ",x,sep="")) +
     ylab(paste("feature: ",y,sep="")) +
     theme(legend.position = "None")
@@ -124,14 +127,14 @@ SharedCounts <- function(C,n_clusters,n_cells=100,subsample=T){
     sumgenes_mat <- outer(sumgenes,sumgenes,FUN="+")
     C@sharedcounts <- as((sumgenes_mat - manhat) / 2,"dgCMatrix")
 
-    spectral_embed <- ScikitManifoldSpectralEmbedding(C@sharedcounts,n_clusters,drop_first=FALSE)
+    spectral_embed <- ScikitManifoldSpectralEmbedding(C@sharedcounts,n_clusters)[[2]]
 	spectral_cluster <- kmeans(spectral_embed,n_clusters,nstart=10,iter.max=300,algorithm="Lloyd")
 
 	combX <- sg[filt_gene_index,]
 	restX <- sg[-filt_gene_index,]
 
-	C@sum_sharedcounts  <- do.call(rbind,lapply(seq_len(n_clusters),function(x){apply(combX[spectral_cluster$cluster ==x,],2,sum)}))
-	C@sum_sharedcounts_all <- rbind(C@sum_sharedcounts,restX)
+	C@sum_sharedcounts  <- as(do.call(rbind,lapply(seq_len(n_clusters),function(x){apply(combX[spectral_cluster$cluster ==x,],2,sum)})),"dgCMatrix")
+	C@sum_sharedcounts_all <- as(rbind(C@sum_sharedcounts,restX),"dgCMatrix")
 
 	return(C)
 }
@@ -141,15 +144,15 @@ SharedCounts <- function(C,n_clusters,n_cells=100,subsample=T){
 #' @param C countland object
 #' @param x gene cluster to plot on x-axis, integer (default=1)
 #' @param y gene cluster to plot on y-axis, integer (default=2)
-#' @param subsample if TRUE, use subsampled counts (default), otherwise use counts
 #'
 #' @export
-PlotSharedCounts <- function(C,x = 1, y = 2,subsample=TRUE){
+PlotSharedCounts <- function(C,x = 1, y = 2){
     loading <- C@sum_sharedcounts
 
     ld <- setNames(data.frame(loading[x,],loading[y,],C@cluster_labels),c("f1","f2","cluster"))
     ggplot(ld,aes(x = f1, y = f2, color = as.character(cluster))) +
     geom_point(size=1) +
+    scale_color_manual(values = color_palette) +
     xlab(paste("feature: ",x,sep="")) +
     ylab(paste("feature: ",y,sep="")) +
     theme(legend.position = "None")
