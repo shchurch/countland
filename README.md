@@ -13,6 +13,29 @@ Replace `TOKEN` with a [github token](https://docs.github.com/en/authentication/
 
 ## Installation for python
 
+To prepare a conda environment and install countland (before first use):
+
+    conda create -n countland -c conda-forge
+    conda activate countland
+    pip install git+https://github.com/shchurch/countland.git#egg=countland&subdirectory=countland-py
+
+To activate the conda environment (before each use):
+
+    conda activate phylopytho
+
 ## Development in R
 
 ## Development in python
+
+To install from local source:
+    conda create -n countland -c conda-forge
+    conda activate countland
+    cd countland-py
+    pip install .
+
+### Running tests
+
+In the `countland-py/`, run:
+
+    conda activate countland
+    python -m pytest
