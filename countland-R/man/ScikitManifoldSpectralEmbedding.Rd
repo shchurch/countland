@@ -4,14 +4,12 @@
 \alias{ScikitManifoldSpectralEmbedding}
 \title{Recapitulate scikit.manifold.spectral_embedding from python.}
 \usage{
-ScikitManifoldSpectralEmbedding(A, n_components, drop_first = TRUE)
+ScikitManifoldSpectralEmbedding(A, n_components)
 }
 \arguments{
 \item{A}{similarity matrix, dgCMatrix}
 
 \item{n_components}{number of eigenvectors to retain, integer}
-
-\item{drop_first}{drop constant eigenvector, boolean}
 }
 \value{
 matrix of eigenvectors

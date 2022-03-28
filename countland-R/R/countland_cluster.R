@@ -1,5 +1,4 @@
 #' @import ggplot2
-#' @import umap
 NULL
 
 color_palette <- c("#8c564b", "#9467bd", "#2ca02c", "#e377c2", "#d62728", "#17becf", "#bcbd22", "#ff7f0e", "#7f7f7f", "#1f77b4")
@@ -123,6 +122,8 @@ Cluster <- function(C,n_clusters,n_components=NULL){
   E <- C@embedding
   if(is.null(n_components)){
     comp <- n_clusters
+  } else {
+    comp <- n_components
   }
 
   if(ncol(E) < comp){
@@ -133,7 +134,6 @@ Cluster <- function(C,n_clusters,n_components=NULL){
     E <- E[,1:comp]
   }
 
-  print(comp)
   clust <- kmeans(E,n_clusters,nstart=10,iter.max=300,algorithm="Lloyd")
 	C@cluster_labels <- clust$cluster
   print("    done.")
@@ -158,35 +158,6 @@ PlotEmbedding <- function(C){
 	guides(color=guide_legend(title="cluster")) +
 	scale_color_manual(values=color_palette)
 }
-
-#' Plot cells using UMAP on untransformed counts.
-#'
-#' @param C countland object
-#' @param subsample if TRUE, use subsampled counts (default), otherwise use counts
-#' @param min_dist minimum distance parameter for UMAP (default=0.5)
-#'
-#' @return countland object with slot `umap`
-#' @export
-PlotUMAP <- function(C,subsample=TRUE,min_dist=0.5){
-
-  stopifnot("cluster labels missing; run Cluster() first"= length(C@cluster_labels) > 0)
-
-  custom.config = umap::umap.defaults
-  custom.config$min_dist = min_dist
-  embed <- umap::umap(t(as(C@subsample,"matrix")),config = custom.config)
-  u1 <- embed$layout[,1]
-  u2 <- embed$layout[,2]
-  cl_c <- as.character(C@cluster_labels)
-  gdf <- data.frame("UMAP1" = u1, "UMAP2" = u2, "countland_clusters" = as.character(cl_c))
-
-  ggplot2::ggplot(gdf,aes(x = UMAP1, y = UMAP2, color=countland_clusters)) +
-    geom_point(size=1) +
-    guides(color=guide_legend(title="cluster")) +
-    scale_color_manual(values=color_palette)
-  #C@umap <- embed$layout
-  #return(C)
-}
-
 
 #' Rank the top marker genes for each cluster from spectral clustering.
 #'

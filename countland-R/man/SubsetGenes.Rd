@@ -4,12 +4,14 @@
 \alias{SubsetGenes}
 \title{Subsets genes using a vector of gene indices}
 \usage{
-SubsetGenes(C, gene_indices)
+SubsetGenes(C, gene_indices, remove_empty = TRUE)
 }
 \arguments{
 \item{C}{countland object}
 
 \item{gene_indices}{vector of gene index values}
+
+\item{remove_empty}{filter out cells and genes with no observed counts (default=TRUE)}
 }
 \value{
 countland object, count matrix updated

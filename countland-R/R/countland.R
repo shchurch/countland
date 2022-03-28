@@ -17,7 +17,6 @@ NULL
 #' @slot dots A similarity dgCMatrix of dot products.
 #' @slot eigenvals An vector of eigenvalues from spectral embedding
 #' @slot embedding An array of two columns (spectral embeddings).
-#' @slot uamp An array of two columns (UMAP embeddings).
 #' @slot cluster_labels A numeric vector of cluster assignemnts of length n cells.
 #' @slot marker_full A list of data.frames with genes ranked for each cluster.
 #' @slot marker_genes A data.frame of top ten marker genes per cluster.
@@ -46,7 +45,6 @@ setClass("countland", slots=list(counts="dgCMatrix",
                                  dots="dgCMatrix",
                                  eigenvals="numeric",
                                  embedding="array",
-                                 umap="array",
                                  cluster_labels="numeric",
                                  marker_full="list",
                                  marker_genes="data.frame",
