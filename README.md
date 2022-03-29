@@ -31,7 +31,12 @@ To install from local source:
     conda create -n countland -c conda-forge
     conda activate countland
     cd countland-py
-    pip install .
+    pip install .[dev]
+
+For testing, this will reload countland functions (e.g. after an edit)
+
+    import importlib
+    importlib.reload(countland)
 
 ### Running tests
 
