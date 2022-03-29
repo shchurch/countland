@@ -31,8 +31,6 @@ from statsmodels.stats import multitest
 
 import umap
 
-from integer_matrix_approximation import *
-
 class countland:
     """
     A class used to represent a countland RNA count object
