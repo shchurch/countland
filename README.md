@@ -30,9 +30,9 @@ To activate the conda environment (before each use):
 To install from local source:
     conda create -n countland -c conda-forge python==3.10
     conda activate countland
-    pip install jupyter
     cd countland-py
     pip install .[dev]
+    pip install jupyter
 
 For testing, this will reload countland functions (e.g. after an edit)
 
