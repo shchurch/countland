@@ -1,2 +1,2 @@
-import countland.countland
-import countland.integer_matrix_approximation
+from .countland import *
+from .integer_matrix_approximation import *
