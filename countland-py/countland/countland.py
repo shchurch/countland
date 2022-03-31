@@ -269,7 +269,7 @@ class countland:
         count10[np.where(count10 <= 10)] = 0 
         df["n_features_above10"] = np.count_nonzero(count10,axis=1)
         
-        df["unique_count_values"] = pd.DataFrame(cts.T).nunique() - 1 # subtract 1 cause 0 doesnt count
+        df["unique_count_values"] = pd.DataFrame(cts.T).nunique() - 1 # subtract 1 cause 0 doesn't count
         df["count_index"] = np.apply_along_axis(self._CountIndex,1,cts)
         
         if(gene_string is not None):
