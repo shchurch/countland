@@ -4,10 +4,12 @@
 \alias{Dot}
 \title{Calculate pairwise dot products of counts between all cells.}
 \usage{
-Dot(C)
+Dot(C, subsample = FALSE)
 }
 \arguments{
 \item{C}{countland object}
+
+\item{subsample}{if TRUE, use subsampled counts, otherwise use counts (default=FALSE)}
 }
 \value{
 countland object with slot \code{dots}

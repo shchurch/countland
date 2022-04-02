@@ -6,10 +6,11 @@ color_palette <- c("#8c564b", "#9467bd", "#2ca02c", "#e377c2", "#d62728", "#17be
 #' Calculate pairwise dot products of counts between all cells.
 #'
 #' @param C countland object
+#' @param subsample if TRUE, use subsampled counts, otherwise use counts (default=FALSE)
 #'
 #' @return countland object with slot `dots`
 #' @export
-Dot <- function(C){
+Dot <- function(C,subsample=FALSE){
 
     print("Calculating dot products between rows...")
     C@dots <- Matrix::t(C@counts) %*% C@counts

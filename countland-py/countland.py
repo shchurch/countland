@@ -65,7 +65,7 @@ class countland:
         Subsamples cells to standard number of total counts
     ScoreGenes(subsample=True)
         Calculates several expression scores based on counts
-    Dot()
+    Dot(subsample=False)
         Calculates pairwise dot products between all cells based on counts
     Cluster(n_clusters)
         Performs spectral clustering using dot products between cells
@@ -393,10 +393,15 @@ class countland:
                       jitter=0.35)
         g.set(xlabel="counts",ylabel="gene name")
         
-    def Dot(self):
+    def Dot(self,subsample=False):
         """
         Calculates pairwise dot product between all cells based on counts   
         ...
+        Parameters
+        ----------
+        subsample : bool
+            if True, score genes using subsampled counts
+            otherwise (default=False), score counts using the unsampled count matrix
         
         Adds
         ----------
@@ -406,7 +411,13 @@ class countland:
         
         logging.info("Calculating dot products between rows...")
 
-        scounts = sparse.csr_matrix(self.counts)
+        if (subsample == False):
+            sg = self.counts
+        else:
+            assert hasattr(self,"subsample"), "expecting array of subsampled counts, use subsample() or select subsample=False to use unsampled count matrix"
+            sg = self.subsample
+
+        scounts = sparse.csr_matrix(sg)
         sdots = np.dot(scounts,scounts.T)
         dots = sparse.csr_matrix.toarray(sdots)
         
