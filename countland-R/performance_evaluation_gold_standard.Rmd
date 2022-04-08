@@ -1,0 +1,297 @@
+# COUNTLAND benchmark - Gold Standard
+### Samuel H. Church
+
+This document applies `countland` to the analysis of a benchmark scRNA-seq dataset to test its performance.
+
+The following packages are required to run the analysis:
+
+```{r load,results=F,message=F}
+library(knitr)
+library(dplyr)
+
+library(Seurat)
+library(networkD3)
+library(aricode)
+library(clevr)
+
+library(ggplot2)
+library(viridis)
+library(gridExtra)
+theme_set(theme_classic())
+```
+
+The source code for `countland` in `R` is located in `countland-R/R/`
+
+```{r source,results=F}
+source("R/countland.R")
+source("R/countland_cluster.R")
+source("R/countland_rank_reduction.R")
+source("R/countland_genes.R")
+source("R/countland_utils.R")
+```
+
+## GET THE DATA
+
+We have used the Gold standard dataset provided by [Freytag _et al_ (2018)](10.12688/f1000research.15809.2). This data consists of ~1000 cells that have ground truth labels corresponding to three human lung cell lines.
+
+```{r data}
+gold.data <- Read10X(data.dir = "../data/Gold_Freytag2018/")
+m <- gold.data
+```
+
+## RUN COUNTLAND
+
+The following code tests the countland approach for identifying cluster of cells. The number of clusters is fixed (`n_clusters=3`), corresponding to the ground truth number of cell populations in this dataset. Here we vary the number of components (eigenvectors) used in spectral clustering.
+
+```{r countland, results=F}
+C <- countland(m)
+C <- Dot(C)
+C <- Embed(C)
+C_3_2 <- Cluster(C,n_clusters=3,n_components=2)
+C_3_3 <- Cluster(C,n_clusters=3,n_components=3)
+C_3_5 <- Cluster(C,n_clusters=3,n_components=5)
+C_3_10 <- Cluster(C,n_clusters=3,n_components=10)
+```
+
+We use three measures for evaluating clustering: the adjusted rand index, the normalized mutual information, and cluster homogeneity.
+
+```{r ARI}
+real_labels <- gsub("_.*","",C@names_cells)
+
+res <- list(C_3_2,C_3_3,C_3_5,C_3_10)
+rand <- sapply(res,function(x){ARI(x@cluster_labels,real_labels)})
+homog <- sapply(res,function(x){homogeneity(x@cluster_labels,real_labels)})
+nmi <- sapply(res,function(x){NMI(x@cluster_labels,real_labels)})
+
+ari_results <- round(data.frame('adjusted rand index' = rand, 'norm. mutual info.' = nmi, "homogeneity" = homog, check.names=F),3)
+rownames(ari_results) <- c("2 components", "3 components", "5 components", "10 components")
+kable(t(ari_results),caption="cluster evaluation")
+```
+
+We can visualize clustering results using spectral embedding, and coloring points according to the ground truth cell labels and the clusters identified with `countland`.
+
+```{r plot-spectral,fig.height=4,fig.width=6,fig.align="center"}
+cl_r <- paste0("cell_label:",real_labels)
+cl_c <- paste0("countland_cluster:",as.character(C_3_5@cluster_labels))
+values <- unique(c(cl_c,cl_r));color <- turbo(n=length(values));names(color) <- values
+
+u1 <- C@embedding[,2]
+u2 <- C@embedding[,3]
+gdf <- data.frame("component_1" = u1, "component_2" = u2, "real_label" = cl_r, "countland_clusters" = cl_c, "total_counts"= apply(C_3_5@counts,2,sum))
+
+g1 <- ggplot(gdf,aes(x = component_1, y = component_2, color = real_label)) + 
+  geom_point(size=1) + scale_color_manual(values=color) + 
+  theme("legend.position" = "none") + 
+  ggtitle("ground truth cell labels") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank())
+g2 <- ggplot(gdf,aes(x = component_1, y = component_2, color = countland_clusters)) +
+  geom_point(size=1) + 
+  scale_color_manual(values=color) + 
+  theme("legend.position" = "none") + 
+  ggtitle("countland: spectral clustering") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank())
+
+grid.arrange(g1,g2,ncol=2)
+```
+
+```{r save-spectral,include=F}
+pdf("../figures_and_panels/Gold_spectral_cluster_results.pdf",height=3,width=6)
+grid.arrange(g1,g2,ncol=2)
+dev.off()
+```
+
+We can also visualize the correspondence between clusters using a sankey diagram.
+
+```{r sankey,fig.height=4,fig.width=4,fig.align="center"}
+# first we calculate the correspondence between clusters
+get_cluster_comb_df <- function(cl1,cl2){
+  return(data.frame('source'=cl1,'target'=cl2) %>% group_by(source,target) %>% dplyr::count())
+}
+r <- get_cluster_comb_df(cl_r,cl_c)
+
+# A connection data frame is a list of flows with intensity for each flow
+links <- data.frame(
+  source=r$source, 
+  target=r$target, 
+  value=r$n
+  )
+ 
+# From these flows we need to create a node data frame: it lists every entities involved in the flow
+nodes <- data.frame(
+  name=c(as.character(links$source), 
+  as.character(links$target)) %>% unique()
+)
+
+# Here we set up the custom color scheme
+my_color <- 'd3.scaleOrdinal() .domain(["countland_cluster:2", "countland_cluster:1", "countland_cluster:3", "cell_label:H2228", "cell_label:H1975", "cell_label:HCC827"]) .range(["#30123BFF", "#3E9BFEFF", "#46F884FF", "#E1DD37FF", "#F05B12FF","#7A0403FF"])'
+
+# With networkD3, connection must be provided using id
+links$IDsource <- match(links$source, nodes$name)-1 
+links$IDtarget <- match(links$target, nodes$name)-1
+ 
+# Make the Network
+p_high <- sankeyNetwork(Links = links, Nodes = nodes,
+              Source = "IDsource", Target = "IDtarget",
+              Value = "value", NodeID = "name", 
+              sinksRight=TRUE, colourScale = my_color)
+p_high
+```
+
+## ADJUSTING THE DATASET
+
+The Gold Standard dataset is unqiue among scRNA-seq datasets because it is far less sparse than most datasets. To test `countland`'s performance in the face of a larger number of zero values, we can downsample each cell to 1\% of the original count depth.
+
+```{r count-zeros}
+# get cell count info
+counts <- C@counts
+n_cells <- length(counts@Dimnames[[2]])
+total_counts <- apply(counts,2,sum)
+min_counts <- min(total_counts)
+
+# calculate how many observations to remove from each cell
+downsample_global <- 0.01
+downsample_factors <- total_counts * downsample_global
+
+# get each cell's observations
+lms <- listCols(counts)
+lis <- split(counts@i, findInterval(seq_len(Matrix::nnzero(counts)), counts@p, left.open=T))
+
+# set seed
+set.seed(84095)
+
+# calculate new cell vectors with few observations for each
+v <- lapply(seq_len(n_cells),function(x){SubsampleCol(lms[[x]],lis[[x]],x,downsample_factors[[x]])})
+vd <- do.call(rbind,lapply(v,as.data.frame))
+
+# rebuild the dgC matrix
+vt <- as(counts,"dgTMatrix")
+vt@i <- vd$i
+vt@j <- vd$j
+vt@x <- vd$x
+vc <- as(vt,"dgCMatrix")
+
+# compare fraction of non-zeros
+round(Matrix::nnzero(counts)/length(counts),4)
+round(Matrix::nnzero(vc)/length(vc),4)
+
+#library(DropletUtils)
+#write10xCounts("../data/Gold_zeros_032922",vc,overwrite=TRUE)
+
+Z <- countland(vc) # zero dataset
+```
+
+We test the same number of components and clusters as described above.
+
+```{r countland-zeroes, results=F}
+Z <- Dot(Z)
+Z <- Embed(Z)
+Z_3_2 <- Cluster(Z,n_clusters=3,n_components=2)
+Z_3_3 <- Cluster(Z,n_clusters=3,n_components=3)
+Z_3_5 <- Cluster(Z,n_clusters=3,n_components=5)
+Z_3_10 <- Cluster(Z,n_clusters=3,n_components=10)
+```
+
+```{r plot-spectral-zeroes,fig.height=4,fig.width=6,fig.align="center"}
+cl_r <- paste0("cell_label:",gsub("_.*","",Z_3_10@names_cells))
+cl_c <- paste0("countland_cluster:",as.character(Z_3_10@cluster_labels))
+values <- unique(c(cl_c,cl_r));color <- turbo(n=length(values));names(color) <- values
+
+u1 <- Z_3_10@embedding[,2]
+u2 <- Z_3_10@embedding[,3]
+gdf <- data.frame("component_1" = u1, "component_2" = u2, "real_label" = cl_r, "countland_clusters" = cl_c, "total_counts"= apply(Z_3_10@counts,2,sum))
+
+g1 <- ggplot(gdf,aes(x = component_1, y = component_2, color = real_label)) + 
+  geom_point(size=1) + scale_color_manual(values=color) + 
+  theme("legend.position" = "none") + 
+  ggtitle("ground truth cell labels") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank())
+g2 <- ggplot(gdf,aes(x = component_1, y = component_2, color = countland_clusters)) +
+  geom_point(size=1) + 
+  scale_color_manual(values=color) + 
+  theme("legend.position" = "none") + 
+  ggtitle("countland: spectral clustering") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank())
+
+grid.arrange(g1,g2,ncol=2)
+```
+
+```{r ARI-zeroes}
+Z_res <- list(Z_3_2,Z_3_3,Z_3_5,Z_3_10)
+Z_rand <- sapply(Z_res,function(x){ARI(x@cluster_labels,cl_r)})
+Z_homog <- sapply(Z_res,function(x){homogeneity(x@cluster_labels,cl_r)})
+Z_nmi <- sapply(Z_res,function(x){NMI(x@cluster_labels,cl_r)})
+
+Z_ari_results <- round(data.frame('adjusted rand index' = Z_rand, 'norm. mutual info.' = Z_nmi, "homogeneity" = Z_homog, check.names=F),3)
+rownames(Z_ari_results) <- c("2 components", "3 components", "5 components", "10 components")
+kable(t(Z_ari_results),caption="cluster evaluation with more sparse data")
+```
+
+### HETEROGENOUS COUNT DEPTH
+
+We can also test `countland`'s performance on a dataset that has high heterogeneity of count depths across cells. Here we accomplish this by restoring the original count depth for 100 cells, drawn equally from two of the three cell populations present in this dataset.
+
+```{r count-heterogenou}
+# build dataset with heterogenous count depth across clusters
+cell_labels <- gsub("_.*","",C@names_cells)
+replacers <- c(sample(which(cell_labels == "HCC827"),50),sample(which(cell_labels == "H1975"),50))
+vcr <- vc[,-replacers]
+vcr <- cbind(vcr,C@counts[,replacers])
+
+H <- countland(vcr) # heterogenous dataset
+#write10xCounts("../data/Gold_zeros_replaced_033122",vcr,overwrite=TRUE)
+```
+
+When using countland on a dataset with substantial count depth heterogeneity, we recommend using the `subsample` option, which downsamples cells to a standard count depth prior to calculating the dot product and performing spectral clustering. Doing this allows `countland` to identify cell identities, where using raw count values does not, as shown below.
+
+```{r countland-heterogenous, results=F}
+H <- Dot(H,subsample=FALSE)
+H <- Embed(H)
+H_3_5 <- Cluster(H,n_clusters=3,n_components=5)
+
+HS <- Subsample(H,n_counts=400)
+HS <- Dot(HS,subsample=TRUE)
+HS <- Embed(HS)
+HS_3_5 <- Cluster(HS,n_clusters=3,n_components=5)
+```
+
+```{r plot-spectral-heterogenous,fig.height=4,fig.width=9,fig.align="center"}
+cl_r <- paste0("cell_label:",gsub("_.*","",HS_3_5@names_cells))
+cl_c <- paste0("countland_cluster:",as.character(HS_3_5@cluster_labels))
+values <- unique(c(cl_c,cl_r));color <- turbo(n=length(values));names(color) <- values
+
+u1 <- HS_3_5@embedding[,2]
+u2 <- HS_3_5@embedding[,3]
+gdf <- data.frame("component_1" = u1, "component_2" = u2, "real_label" = cl_r, "countland_clusters" = cl_c, "total_counts"= apply(HS_3_5@counts,2,sum))
+
+g1 <- ggplot(gdf,aes(x = component_1, y = component_2, color = real_label)) + 
+  geom_point(size=1) + scale_color_manual(values=color) + 
+  theme("legend.position" = "none") + 
+  ggtitle("ground truth cell labels") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank())
+g2 <- ggplot(gdf,aes(x = component_1, y = component_2, color = countland_clusters)) +
+  geom_point(size=1) + 
+  scale_color_manual(values=color) + 
+  theme("legend.position" = "none") + 
+  ggtitle("countland: spectral clustering") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank())
+g3 <- ggplot(gdf,aes(x = component_1, y = component_2, color = total_counts)) +
+  geom_point(size=1) + 
+  scale_color_viridis(option="B") + 
+  theme("legend.position" = "none") + 
+  ggtitle("total counts") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank())
+
+grid.arrange(g3,g1,g2,ncol=3)
+```
+
+```{r ARI-heterogenous}
+
+H_res <- list(H_3_5,HS_3_5)
+H_rand <- sapply(H_res,function(x){ARI(x@cluster_labels,cl_r)})
+H_homog <- sapply(H_res,function(x){homogeneity(x@cluster_labels,cl_r)})
+H_nmi <- sapply(H_res,function(x){NMI(x@cluster_labels,cl_r)})
+
+H_ari_results <- round(data.frame('adjusted rand index' = H_rand, 'norm. mutual info.' = H_nmi, "homogeneity" = H_homog, check.names=F),3)
+rownames(H_ari_results) <- c("raw counts", "counts subsampled")
+kable(t(H_ari_results),caption="cluster evaluation with heterogenous count depth")
+```
