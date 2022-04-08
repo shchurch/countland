@@ -236,8 +236,13 @@ class countland:
         """ 
         
         unique,counts = np.unique(c,return_counts=True)
-        return(np.max(unique[counts >= unique]))
-
+        check_zero = sum(counts >= unique)
+        if(check_zero == 0):
+            index = 0
+        else:
+            index = np.max(unique[counts >= unique])
+        return(index)
+    
     def ScoreCells(self,gene_string=None):
         """
         Calculates several scores for counts across cells
