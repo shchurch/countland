@@ -1,3 +1,23 @@
+---
+title: "vignette-tutorial"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{vignette-tutorial}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(countland)
+```
+
 # COUNTLAND: R tutorial
 ### Samuel H. Church
 
@@ -20,19 +40,8 @@ We have used the Gold standard dataset provided by [Freytag _et al_ (2018)](10.1
 `countland` accepts an sparse data matrix (as does `Seurat`). 
 
 ```{r data}
-gold.data <- Seurat::Read10X(data.dir = "../data/Gold_Freytag2018/")
+gold.data <- Seurat::Read10X(data.dir = "../../data/Gold_Freytag2018/")
 m <- gold.data
-```
-
-## IMPORT COUNTLAND
-The source code for `countland` in `R` is located in `countland-R/R/`
-
-```{r source}
-source("R/countland.R")
-source("R/countland_cluster.R")
-source("R/countland_rank_reduction.R")
-source("R/countland_genes.R")
-source("R/countland_utils.R")
 ```
 
 ## INITIALIZE COUNTLAND OBJECT
