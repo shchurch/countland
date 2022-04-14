@@ -20,7 +20,7 @@ To prepare a conda environment and install countland (before first use):
 
 To activate the conda environment (before each use):
 
-    conda activate phylopytho
+    conda activate countland
 
 ### Development in python
 
