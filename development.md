@@ -1,5 +1,9 @@
 # countland Development
 
+All development should be on a feature or development branch. Do not merge 
+back into master until devtools::check() is passing for R code and XXX is 
+passing for python code.
+
 ## Development in python
 
 To install from local source:

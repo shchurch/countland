@@ -17,12 +17,15 @@ Imports:
     methods,
     rdist,
     RSpectra,
+    Seurat,
     stats,
     viridis
 Suggests: 
     knitr,
     rmarkdown,
-    Seurat,
+    aricode,
+    clevr,
+    networkD3,
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
 Config/testthat/edition: 3
