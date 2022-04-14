@@ -32,11 +32,11 @@ Development typically involves `cd`ing to the package directory `countland-R/`, 
 
 	options(error=traceback) # Get line numbers for errors
     library(devtools)
-    load_all()
-    test()
-    document()
-    check() # A wrapper for R CMD check, see http://r-pkgs.had.co.nz/check.html#check
-    build() # Create package bundle, including executed vignettes
+    devtools::load_all()
+    devtools::test()
+    devtools::document()
+    devtools::check() # A wrapper for R CMD check, see http://r-pkgs.had.co.nz/check.html#check
+    devtools::build() # Create package bundle, including executed vignettes
 
 To regenerate the pdf manual, run the following shell command in the package directory:
 
