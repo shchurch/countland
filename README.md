@@ -6,7 +6,6 @@ Please see our manuscript for more details:
 
 > Church et al. 2022. Counting RNA transcripts in cells. XXXX
 
-
 `countland` is implemented in both R and python. The code for each is included in this repository.
 
 ## python
@@ -33,18 +32,15 @@ To install from local source:
     pip install .[dev]
     pip install jupyter
 
-For testing, this will reload countland functions (e.g. after an edit)
+This will reload countland functions (e.g. after an edit)
 
     import importlib
     importlib.reload(countland)
 
-#### Running tests in python
-
-In the `countland-py/`, run:
+To run tests for  `countland-py/`:
 
     conda activate countland
     python -m pytest
-
 
 ## R
 
@@ -54,7 +50,6 @@ From an R prompt, run the following:
 
     library(devtools)
     install_github("shchurch/countland", subdir="countland-R")
-
 
 ### Development in R
 
