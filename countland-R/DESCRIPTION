@@ -10,12 +10,22 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.2
 Imports: 
-    ggplot2,
+    tidyverse,
     igraph,
     Matrix,
     matrixTests,
     methods,
     rdist,
     RSpectra,
+    Seurat,
     stats,
     viridis
+Suggests: 
+    knitr,
+    rmarkdown,
+    aricode,
+    clevr,
+    networkD3,
+    testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Config/testthat/edition: 3

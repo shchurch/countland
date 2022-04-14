@@ -1,3 +1,23 @@
+---
+title: "vignette_pig_placozoa"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{vignette_pig_placozoa}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(countland)
+```
+
 # COUNTLAND benchmark - Pig and placozoan data
 ### Samuel H. Church
 
@@ -18,36 +38,29 @@ library(gridExtra)
 theme_set(theme_classic())
 ```
 
-```{r source,results=F}
-source("R/countland.R")
-source("R/countland_cluster.R")
-source("R/countland_rank_reduction.R")
-source("R/countland_genes.R")
-source("R/countland_utils.R")
-```
 
 ## GET THE DATA
 
 Here we apply countland to a dataset from the placozoan (_Trichoplax adherens_) provided by [Sebé-Pedros _et al_ (2018)](https://doi.org/10.1038/s41559-018-0575-6), and a dataset from the pig (_Sus scrofa_) provided by [van Zyl _et al_ (2020](https://www.pnas.org/cgi/doi/10.1073/pnas.2001250117).
 
 ```{r data}
-Tri.data <- Seurat::Read10X(data.dir = "../data/Trichoplax_SebePedros2018")
-Sus.data <- Seurat::Read10X(data.dir = "../data/Pig9_vanZyl2020_mtx")
+Tri.data <- Seurat::Read10X(data.dir = "../../data/Trichoplax_SebePedros2018/")
+Sus.data <- Seurat::Read10X(data.dir = "../../data/Pig9_vanZyl2020_mtx/")
 ```
 
 ## RUN COUNTLAND
 
-We first apply spectral embeddding to the two datasets.
+We first apply spectral embedding to the two datasets.
 
 ```{r run,results=F}
 Sus <- countland(Sus.data,remove_empty = TRUE)
 Sus <- Subsample(Sus,n_counts=min(apply(Sus@counts,2,sum)))
-Sus <- Dot(Sus,subsample=T)
+Sus <- Dot(Sus,subsample=TRUE)
 Sus <- Embed(Sus,n_components=20)
 
 Tri <- countland(Tri.data,remove_empty = TRUE)
 Tri <- Subsample(Tri,n_counts=min(apply(Tri@counts,2,sum)))
-Tri <- Dot(Tri,subsample=T)
+Tri <- Dot(Tri,subsample=TRUE)
 Tri <- Embed(Tri,n_components=20)
 ```
 Because we have no _a priori_ hypothesis as to the number of clusters that may be present, we check to see if the eigengap heuristic for spectral clustering is informative.
