@@ -22,7 +22,9 @@ To activate the conda environment (before each use):
 
     conda activate countland
 
+### Running the tutorial in python
 
+After installing countland and activating it as described above
 
 ## R
 
