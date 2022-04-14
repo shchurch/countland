@@ -25,7 +25,14 @@ To run tests for  `countland-py/`:
     python -m pytest
 
 
-Our automated code review follows [this strategy](https://ljvmiranda921.github.io/notebook/2018/06/21/precommits-using-black-and-flake8/).
+Our automated code review draws on [this strategy](https://ljvmiranda921.github.io/notebook/2018/06/21/precommits-using-black-and-flake8/).
+
+To manually run it, `cd` to `countland\countland-py\countland` and run:
+    
+    black .
+    flake8 .
+
+
 
 ## Development in R
 
