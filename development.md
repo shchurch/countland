@@ -1,7 +1,7 @@
 # countland Development
 
-All development should be on a feature or development branch. Do not merge 
-back into master until devtools::check() is passing for R code and XXX is 
+All development should be on a feature or development branch. Do not merge
+back into master until devtools::check() is passing for R code and XXX is
 passing for python code.
 
 ## Development in python
@@ -23,6 +23,9 @@ To run tests for  `countland-py/`:
 
     conda activate countland
     python -m pytest
+
+
+Our automated code review follows [this strategy](https://ljvmiranda921.github.io/notebook/2018/06/21/precommits-using-black-and-flake8/).
 
 ## Development in R
 
