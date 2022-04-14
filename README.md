@@ -24,7 +24,9 @@ To activate the conda environment (before each use):
 
 ### Running the tutorial in python
 
-After installing countland and activating it as described above
+The easiest way to run the tutorial is as a Google Colab notebook. Just open the following link and hit Runtime > Run all:
+
+https://colab.research.google.com/github/shchurch/countland/blob/main/countland-py/vignette_tutorial.ipynb
 
 ## R
 
