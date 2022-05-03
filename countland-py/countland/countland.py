@@ -29,8 +29,7 @@ from scipy.spatial.distance import cdist
 from scipy.stats import mannwhitneyu
 from statsmodels.stats import multitest
 
-import umap
-
+from IMA import IMA, IMA_params
 
 class countland:
     """
