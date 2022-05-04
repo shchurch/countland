@@ -24,8 +24,8 @@ RunIMA <- function(C,features,u_bounds,l_bounds=c(0,0),maxiter=1000000,stop_crit
     }
 
     #logging
-    params <- IMA_params(features,u_bounds,l_bounds,maxiter,stop_crit)
-    res <- IMA(sg,params)
+    params <- IMA::IMA_params(features,u_bounds,l_bounds,maxiter,stop_crit)
+    res <- IMA::IMA(sg,params)
 
     C@matrixU <- as(res[[1]],"dgCMatrix")
     C@matrixV <- as(res[[2]],"dgCMatrix")
@@ -86,8 +86,8 @@ PlotIMAElbow <- function(C,max_features,u_bounds,subsample=TRUE){
     obs_norm <- norm(sg,"F")
 
     norms <- sapply(seq(2,max_features),function(x){
-    	params = IMA_params(x,u_bounds)
-    	res = IMA(sg,params)
+    	params = IMA::IMA_params(x,u_bounds)
+    	res = IMA::IMA(sg,params)
     	norm = norm(res[[1]]%*%res[[3]],"F")
     	norm_diff = obs_norm - norm
     	return(norm_diff)

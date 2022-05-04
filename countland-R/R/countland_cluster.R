@@ -1,6 +1,3 @@
-#' @import ggplot2
-NULL
-
 color_palette <- c("#8c564b", "#9467bd", "#2ca02c", "#e377c2", "#d62728", "#17becf", "#bcbd22", "#ff7f0e", "#7f7f7f", "#1f77b4")
 
 #' Calculate pairwise dot products of counts between all cells.
