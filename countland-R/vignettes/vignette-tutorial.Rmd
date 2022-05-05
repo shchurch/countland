@@ -1,5 +1,5 @@
 ---
-title: "vignette-tutorial"
+title: "COUNTLAND: R tutorial"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{vignette-tutorial}
@@ -14,11 +14,6 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r setup}
-library(countland)
-```
-
-# COUNTLAND: R tutorial
 ### Samuel H. Church
 
 This tutorial demonstrates the major functions of `countland` by applying them to a Gold standard single-cell RNA sequencing dataset from [Freytag _et al_ (2018)](10.12688/f1000research.15809.2).
@@ -27,7 +22,8 @@ This tutorial demonstrates the major functions of `countland` by applying them t
 
 The following packages are required to complete the tutorial
 
-```{r load}
+```{r setup}
+library(countland)
 library(Seurat)
 library(ggplot2)
 theme_set(theme_classic())
@@ -65,17 +61,17 @@ We can establish data quality by checking the total number of counts and other e
 
 In addition, it can be helpful to see how many counts are derived from certain genes, such as mitochondrial genes (here we have chosen a gene name with particularly high counts, regular expressions are permitted for name matching).
 
-Expression measures include:
-- maximum number of counts observed across genes
-- total counts
-- number of genes with observed counts
-- number of genes with counts above 1, or 10
-- number of unique count values per cell
-- count index = number of _n_ genes with _n_ counts
+Expression measures include: 
+* maximum number of counts observed across genes
+* total counts
+* number of genes with observed counts
+* number of genes with counts above 1, or 10
+* number of unique count values per cell
+* count index = number of _n_ genes with _n_ counts
 
 ```{r cell-score}
-# flag genes starting with MT (mitchondrial genes)
-gene_string <- "^ENSG00000140988$"
+# sum counts from genes matching this regex expression
+gene_string <- "162396$"
 C <- ScoreCells(C,gene_string)
 head(C@cell_scores)
 ```
@@ -138,7 +134,7 @@ head(C@gene_scores)
 ```
 We can also visualize counts across genes with a stripplot
 
-```{r plot-genes}
+```{r plot-genes,fig.width=6}
 top_genes <- which(C@names_genes %in% head(C@gene_scores[order(-C@gene_scores$unique_count_values),],9)$names)
 PlotGeneCounts(C,top_genes)
 ```
@@ -164,6 +160,7 @@ The eigengap heuristic is can help decide the optimal number of clusters, but it
 ```{r eigengap}
 PlotEigengap(C)
 ```
+
 For many datasets, you may want to consider other factors, e.g. choosing a minimum number of clusters, whether or not the eigengap reflects this.
 
 Here we have chosen 3 as the optimal number of clusters.
@@ -176,7 +173,7 @@ C <- Cluster(C,n_clusters=3)
 
 We can now visualize clusters using spectral embedding.
 
-```{r plot-cluster}
+```{r plot-cluster,fig.width=6}
 PlotEmbedding(C)
 ```
 
@@ -190,7 +187,7 @@ Under this definition, the top marker gene for each cluster can be identified by
 C <- RankMarkerGenes(C,method='prop-zero')
 C@marker_genes[(C@marker_genes$cluster_label == 1),]
 ```
-```{r plot-marker-zero}
+```{r plot-marker-zero,fig.width=6}
 cluster_marker <- C@marker_genes[C@marker_genes$cluster_label == 1,]
 cluster_top <- cluster_marker[cluster_marker$rank == 1,]$names
 gene_index = which(C@names_genes == cluster_top)
@@ -203,7 +200,7 @@ Alternatively, the top marker genes for each cluster can be identified by rankin
 C <- RankMarkerGenes(C,method='rank-sums')
 C@marker_genes[(C@marker_genes$cluster_label == 1),]
 ```
-```{r plot-marker-ranks}
+```{r plot-marker-ranks,fig.width=6}
 cluster_marker <- C@marker_genes[C@marker_genes$cluster_label == 1,]
 cluster_top <- cluster_marker[cluster_marker$rank == 1,]$names
 gene_index = which(C@names_genes == cluster_top)
