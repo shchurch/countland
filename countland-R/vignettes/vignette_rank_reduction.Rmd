@@ -1,5 +1,5 @@
 ---
-title: "vignette_rank_reduction"
+title: "COUNTLAND: rank reduction and data visualization"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{vignette_rank_reduction}
@@ -14,31 +14,21 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r setup}
-library(countland)
-```
-
-# countland - rank reduction and visualization
 ### Samuel H. Church
 
-This vignette demonstrates several methods for reducing approximating a lower rank version of the count matrix, and for visualizing the count matrix in a reduced dimensional space.
-
-```{r load}
+```{r setup}
+library(countland)
 library(Seurat)
 library(ggplot2)
 theme_set(theme_classic())
-
-source("R/countland.R")
-source("R/countland_cluster.R")
-source("R/countland_rank_reduction.R")
-source("R/countland_genes.R")
-source("R/countland_utils.R")
 ```
 
-Here we implement the `countland` clustering workflow on the Gold Standard dataset.
+This vignette demonstrates several methods for approximating a lower rank version of the count matrix, and for visualizing the count matrix in a reduced dimensional space.
+
+Here we implement the `countland` clustering workflow on the Gold Standard dataset from [Freytag _et al_ (2018)](10.12688/f1000research.15809.2).
 
 ```{r data}
-gold.data <- Seurat::Read10X(data.dir = "../data/Gold_Freytag2018/")
+gold.data <- Seurat::Read10X(data.dir = "../../data/Gold_Freytag2018/")
 set.seed(84095)
 
 C <- countland(gold.data)
@@ -47,12 +37,11 @@ C <- Embed(C)
 C <- Cluster(C,n_clusters=3)
 C <- Subsample(C,n_counts=40000)
 ```
-
 ## SPECTRAL EMBEDDING
 
 The default method in `countland` for visualizing cell-cell similarity is spectral embedding of the dot product matrix.
 
-```{r spectral}
+```{r spectral,fig.width=6}
 PlotEmbedding(C)
 ```
 
@@ -64,16 +53,17 @@ Rank reduction is a significant challenge with single-cell data, in large part b
 
 ### INTEGER MATRIX APPROXIMATION
 
-This method, described [here](https://mtchu.math.ncsu.edu/Research/Papers/bindec05f.pdf), seeks to identify a set of matrices that can be multiplied together to approximate a matrix of integers, here the count matrix. In this way it is similar to other rank reduction methods, like singular value decomposition.
+Integer matrix factorization, described [here](https://mtchu.math.ncsu.edu/Research/Papers/bindec05f.pdf), is an approach to achieve a low-rank approximation of matrices that include only natural numbers. Like other matrix factorizations (e.g. singular-value decomposition), this method seeks to find lower-rank matrices that can be multiplied together to approximate a higher-rank matrix, here the count matrix. 
 
-IMA produces three matrices, $\mathrm{U}$, $\mathrm{V}$, and $\Lambda$. The matrix $\mathrm{U}$ has the dimensions cells x features, where the number of features is the target reduction determined by the user. The matrix $\mathrm{V}$ has the dimensions genes x features, and $\Lambda$ is a diagonal scaling matrix. The bounds of the integer values in each matrix can be changed to accomodate the data in question.
+Integer matrix approximation generates three matrices, termed $\mathrm{U}$, $\mathrm{V}$, and $\Lambda$. When using integer matrix approximation on single-cell count data, matrix $\mathrm{U}$ has the dimensions $m$ cells by $k$ features, with $k$ provided as the target rank, $\mathrm{V}$ has the dimensions $k$ features by $n$ genes, and $\Lambda$ is a diagonal matrix of $k$ scaling factors.
 
-We can identify a good target rank by visualizing how many dimensions are required to best approximate the count matrix. 
+Because of the discrete nature of count data, this factorization cannot be accomplished conventionally, but [approximations for this factorization](https://github.com/kperros/SUSTain) have been proposed for other types of count-based data. Here we implement the algorithm for integer matrix approximation in python and R, and apply it to the approximation of single-cell count data. The bounds of the integer values in each matrix can be changed to accomodate the data in question.
+
+We can first identify a reasonable target rank by visualizing how many dimensions are required to best approximate the count matrix. 
 
 **Note that this takes some time (~4 mins)**
 
 ```{r IMA-elbow}
-source("R/integer_matrix_approximation.R")
 PlotIMAElbow(C,max_features=20,u_bounds=c(5,10),subsample=TRUE)
 ```
 
@@ -88,7 +78,7 @@ I <- RunIMA(C,features=15,u_bounds=c(5,10),subsample=TRUE)
 
 We can visualize cells by embedding counts (matrix $\mathrm{C}$) in this reduced space. This is calculated with matrix multiplication $\mathrm{C(V}\Lambda)$. Components in this space are unordered, so it can be helpful to view cells embedded in several combinations of components.
 
-```{r plot-IMA}
+```{r plot-IMA,fig.width=6,fig.height=6}
 i1 <- PlotIMA(I,x=1,y=2,subsample=TRUE)
 i2 <- PlotIMA(I,x=3,y=2,subsample=TRUE)
 i3 <- PlotIMA(I,x=1,y=4,subsample=TRUE)
@@ -101,19 +91,19 @@ gridExtra::grid.arrange(i1,i2,i3,i4,ncol=2)
 Another method for reducing the dimensions is to collapse groups of genes with similar patterns of counts across cells. Here we can accomplish this by calculating the number of shared counts between all pairs of genes, identifying clusters of genes with similar counts, and then summing counts within clusters.
 
 **Note: this can be very slow on large datasets**
-Because calculating pairwise shared count values is memory intensive, this is performed using a random sample of cells, set with `n_cells`, default `100`. It may be also be necessary to subset to a group of genes, for example, those with fewer than _n_ counts.
+
+Because calculating pairwise shared count values is memory intensive, this is performed using a random sample of cells, `n_cells` (default=`100`). It may be also be necessary to subset to a group of genes, for example, those with fewer than _n_ counts.
 
 ```{r sharedcounts}
 S <- SubsetGenes(C,which(apply(C@counts,1,sum) < 1000))
 set.seed(84095)
 S <- Subsample(S,n_counts=500)
 S <- SharedCounts(S,n_clusters=10,subsample=TRUE)
-#save(S,file="rankred_shared.RData")
-#load("rankred_shared.RData")
 ```
+
 Because the components of this dimensional reduction are groups of genes, it can be helpful to view several combinations to assess which capture a substantial amount of cell-cell variation.
 
-```{r plot-shared}
+```{r plot-shared,fig.width=6,fig.height=6}
 s1 <- PlotSharedCounts(S,x = 1, y = 2)
 s2 <- PlotSharedCounts(S,x = 3, y = 2)
 s3 <- PlotSharedCounts(S,x = 1, y = 4)
@@ -127,7 +117,7 @@ gridExtra::grid.arrange(s1,s2,s3,s4,ncol=2)
 
 An alternative approach for comparing cells using untransformed counts is generalized linear model based PCA, or GLM-PCA. This has been described for scRNA-seq data [here](https://doi.org/10.1186/s13059-019-1861-6) and implemented [here](https://github.com/willtownes/glmpca-py).
 
-**Note this can take some time.**
+**Note: this can also take some time.**
 
 ```{r glmpca}
 #install.packages("glmpca")
@@ -137,7 +127,9 @@ res <- glmpca(as(C@counts,"matrix"),2)
 #load("rankred_glmpca.RData")
 ```
 
-```{r plot-glmpca}
+```{r plot-glmpca,fig.width=6}
+color_palette <- c("#8c564b", "#9467bd", "#2ca02c", "#e377c2", "#d62728", "#17becf", "#bcbd22", "#ff7f0e", "#7f7f7f", "#1f77b4")
+
 factors <- res$factors
 glmpca_df <- data.frame("component_1" = factors[,1],"component_2"=factors[,2],"cluster"=C@cluster_labels)
 	ggplot(glmpca_df,aes(x = component_1,y = component_2, color=as.character(cluster))) +
@@ -162,32 +154,31 @@ gold <- FindClusters(gold, resolution = 0.01)
 gold <- RunUMAP(gold, dims = 1:10)
 ```
 
-```{r plot-seurat}
+```{r plot-seurat,fig.width=6}
 DimPlot(gold,reduction="umap",cols=c("#9467bd","#8c564b","#2ca02c"))
 ```
-This visualization compares each method for dimensional reduction.
 
-```{r combo-load}
+```{r combo-load,include=F}
 library(gganimate)
 library(gifski)
 library(dplyr)
 library(tidyr)
 ```
 
-```{r combo}
+```{r combo,include=F}
 df_glmpca <- setNames(res$factors,c("embedding_1","embedding_2"))
 df_seurat <- setNames(data.frame(gold@reductions$umap@cell.embeddings),c("embedding_1","embedding_2"))
 df_spectral <- setNames(data.frame(C@embedding[,2:3]),c("embedding_1","embedding_2"))  * 10000000
-df_shared <- setNames(data.frame(t(S@sum_sharedcounts[c(2,4),])),c("embedding_1","embedding_2")) / 100
+df_shared <- setNames(data.frame(Matrix::t(S@sum_sharedcounts[c(2,4),])),c("embedding_1","embedding_2")) / 100
 
-sg <- as(t(I@subsample),"matrix")
+sg <- as(Matrix::t(I@subsample),"matrix")
 loading <- sg %*% (I@matrixV %*% I@matrixLambda)
 df_IMA <- setNames(data.frame(loading[,c(6,4)]),c("embedding_1","embedding_2")) / 100000
 
 all_embeddings <- rbind(df_glmpca,df_seurat,df_spectral,df_shared,df_IMA)
 all_embeddings$type <- rep(c("GLMPCA","seuratUMAP","spectral","shared_counts","IMA"),each=nrow(df_glmpca))
-all_embeddings$cell_label <- as.character(rep(gsub("_.*","",C@names_cells),6))
-all_embeddings$cell <- rep(C@names_cells,6)
+all_embeddings$cell_label <- as.character(rep(gsub("_.*","",C@names_cells),5))
+all_embeddings$cell <- rep(C@names_cells,5)
 
 g1 <- ggplot(data = all_embeddings %>% filter(type == "spectral"), 
 	aes(x = embedding_1, y = embedding_2, color = cell_label)) + 
@@ -242,13 +233,13 @@ g5 <- ggplot(data = all_embeddings %>% filter(type == "seuratUMAP"),
 gridExtra::grid.arrange(g1,g2,g3,g4,g5,ncol=3)
 ```
 
-```{r save-comparison}
-pdf(file="../figures_and_panels/Gold_embedding_comparison.pdf",height=5,width=8)
+```{r save-comparison,include=F}
+pdf(file="../../figures_and_panels/Gold_embedding_comparison.pdf",height=5,width=8)
 gridExtra::grid.arrange(g1,g2,g3,g4,g5,ncol=3)
 dev.off()
 ```
 
-```{r animate}
+```{r animate,include=F}
 sg1 <- ggplot(data = all_embeddings, aes(x = embedding_1, y = embedding_2, color = cell_label)) +
   geom_point(size = 2,aes(group = cell)) +
 	theme(axis.ticks=element_blank(),
@@ -263,6 +254,5 @@ sg1 <- ggplot(data = all_embeddings, aes(x = embedding_1, y = embedding_2, color
   guides(color=guide_legend(title="cell label")) +
   labs(title = 'embedding: {closest_state}')
 
-anim_save("../figures_and_panels/Gold_ebmedding_animation.gif",animate(sg1,duration=20,fps=10))
-
+anim_save("../../figures_and_panels/Gold_ebmedding_animation.gif",animate(sg1,duration=20,fps=10))
 ```

@@ -14,10 +14,10 @@ color_palette <- c("#8c564b", "#9467bd", "#2ca02c", "#e377c2", "#d62728", "#17be
 #' @export
 RunIMA <- function(C,features,u_bounds,l_bounds=c(0,0),maxiter=1000000,stop_crit=0.0001,subsample=TRUE){
 	if(subsample==FALSE){
-        sg <- as(t(C@counts),"matrix")
+        sg <- as(Matrix::t(C@counts),"matrix")
     } else {
         if(length(C@subsample)!=0){
-            sg <- as(t(C@subsample),"matrix")
+            sg <- as(Matrix::t(C@subsample),"matrix")
         } else {
             stop("expecting array of subsampled counts, use subsample() or select subsample=False to use unsampled count matrix")
         }
@@ -44,10 +44,10 @@ RunIMA <- function(C,features,u_bounds,l_bounds=c(0,0),maxiter=1000000,stop_crit
 #' @export
 PlotIMA <- function(C,x = 1, y = 2,subsample=TRUE){
 	if(subsample==FALSE){
-        sg <- as(t(C@counts),"matrix")
+        sg <- as(Matrix::t(C@counts),"matrix")
     } else {
         if(length(C@subsample)!=0){
-            sg <- as(t(C@subsample),"matrix")
+            sg <- as(Matrix::t(C@subsample),"matrix")
         } else {
             stop("expecting array of subsampled counts, use subsample() or select subsample=False to use unsampled count matrix")
         }
@@ -74,10 +74,10 @@ PlotIMA <- function(C,x = 1, y = 2,subsample=TRUE){
 #' @export
 PlotIMAElbow <- function(C,max_features,u_bounds,subsample=TRUE){
 	if(subsample==FALSE){
-        sg <- as(t(C@counts),"matrix")
+        sg <- as(Matrix::t(C@counts),"matrix")
     } else {
         if(length(C@subsample)!=0){
-            sg <- as(t(C@subsample),"matrix")
+            sg <- as(Matrix::t(C@subsample),"matrix")
         } else {
             stop("expecting array of subsampled counts, use subsample() or select subsample=False to use unsampled count matrix")
         }
