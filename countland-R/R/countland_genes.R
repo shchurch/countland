@@ -170,7 +170,7 @@ PlotGeneCounts <- function(C,gene_indices){
     } else {
         pal <- rep("black",length(gene_indices))
     }
-    ggplot(new_counts,aes(y=name,x=as.numeric(counts),color=name)) +
+    ggplot(new_counts,aes(y=.data$name,x=as.numeric(.data$counts),color=.data$name)) +
         geom_jitter(size=0.5,position = position_jitter(width=0)) +
         scale_color_manual(values=pal) +
         xlab("counts") +

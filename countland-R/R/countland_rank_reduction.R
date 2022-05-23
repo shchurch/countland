@@ -56,7 +56,7 @@ PlotIMA <- function(C,x = 1, y = 2,subsample=TRUE){
     loading <- sg %*% (C@matrixV %*% C@matrixLambda)
 
     ld <- setNames(data.frame(loading[,x],loading[,y],C@cluster_labels),c("f1","f2","cluster"))
-    ggplot(ld,aes(x = f1, y = f2, color = as.character(cluster))) +
+    ggplot(ld,aes(x = .data$f1, y = .data$f2, color = as.character(.data$cluster))) +
     geom_point(size=1) +
     scale_color_manual(values = color_palette) +
     xlab(paste("feature: ",x,sep="")) +
@@ -93,7 +93,7 @@ PlotIMAElbow <- function(C,max_features,u_bounds,subsample=TRUE){
     	return(norm_diff)
     })
 
-    ggplot(data.frame("features" = seq(2,max_features),"difference" = norms),aes(x=features,y=difference)) +
+    ggplot(data.frame("features" = seq(2,max_features),"difference" = norms),aes(x=.data$features,y=.data$difference)) +
     geom_point()
 
 }
@@ -108,33 +108,33 @@ PlotIMAElbow <- function(C,max_features,u_bounds,subsample=TRUE){
 #' @return countland object with slots `shared_counts`, `sum_sharedcounts`, `sum_sharedcounts_all`
 #' @export
 SharedCounts <- function(C,n_clusters,n_cells=100,subsample=T){
-	if(subsample==FALSE){
-        sg <- C@counts
-    } else {
-        if(length(C@subsample)!=0){
-            sg <- C@subsample
-        } else {
-            stop("expecting array of subsampled counts, use subsample() or select subsample=False to use unsampled count matrix")
-        }
-    }
+  if(subsample==FALSE){
+      sg <- C@counts
+  } else {
+      if(length(C@subsample)!=0){
+          sg <- C@subsample
+      } else {
+          stop("expecting array of subsampled counts, use subsample() or select subsample=False to use unsampled count matrix")
+      }
+  }
 
-    filtX <- sg[,sample(col(sg),n_cells,replace=F)]
-    filt_gene_index <- which(apply(filtX,1,sum)>0)
-    filtX <- filtX[filt_gene_index,]
+  filtX <- sg[,sample(col(sg),n_cells,replace=F)]
+  filt_gene_index <- which(apply(filtX,1,sum)>0)
+  filtX <- filtX[filt_gene_index,]
 
-    manhat <- as(rdist::rdist(filtX,metric="manhattan"),"matrix")
-    sumgenes <- apply(filtX,1,sum)
-    sumgenes_mat <- outer(sumgenes,sumgenes,FUN="+")
-    C@sharedcounts <- as((sumgenes_mat - manhat) / 2,"dgCMatrix")
+  manhat <- as(rdist::rdist(filtX,metric="manhattan"),"matrix")
+  sumgenes <- apply(filtX,1,sum)
+  sumgenes_mat <- outer(sumgenes,sumgenes,FUN="+")
+  C@sharedcounts <- as((sumgenes_mat - manhat) / 2,"dgCMatrix")
 
-    spectral_embed <- ScikitManifoldSpectralEmbedding(C@sharedcounts,n_clusters)[[2]]
-	spectral_cluster <- kmeans(spectral_embed,n_clusters,nstart=10,iter.max=300,algorithm="Lloyd")
+  spectral_embed <- ScikitManifoldSpectralEmbedding(C@sharedcounts,n_clusters)[[2]]
+  spectral_cluster <- kmeans(spectral_embed,n_clusters,nstart=10,iter.max=300,algorithm="Lloyd")
 
-	combX <- sg[filt_gene_index,]
-	restX <- sg[-filt_gene_index,]
+  combX <- sg[filt_gene_index,]
+  restX <- sg[-filt_gene_index,]
 
-	C@sum_sharedcounts  <- as(do.call(rbind,lapply(seq_len(n_clusters),function(x){apply(combX[spectral_cluster$cluster ==x,],2,sum)})),"dgCMatrix")
-	C@sum_sharedcounts_all <- as(rbind(C@sum_sharedcounts,restX),"dgCMatrix")
+  C@sum_sharedcounts  <- as(do.call(rbind,lapply(seq_len(n_clusters),function(x){apply(combX[spectral_cluster$cluster ==x,],2,sum)})),"dgCMatrix")
+  C@sum_sharedcounts_all <- as(rbind(C@sum_sharedcounts,restX),"dgCMatrix")
 
 	return(C)
 }
@@ -150,7 +150,7 @@ PlotSharedCounts <- function(C,x = 1, y = 2){
     loading <- C@sum_sharedcounts
 
     ld <- setNames(data.frame(loading[x,],loading[y,],C@cluster_labels),c("f1","f2","cluster"))
-    ggplot(ld,aes(x = f1, y = f2, color = as.character(cluster))) +
+    ggplot(ld,aes(x = .data$f1, y = .data$f2, color = as.character(.data$cluster))) +
     geom_point(size=1) +
     scale_color_manual(values = color_palette) +
     xlab(paste("feature: ",x,sep="")) +

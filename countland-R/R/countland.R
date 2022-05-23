@@ -1,4 +1,7 @@
 #' @importClassesFrom Matrix dgCMatrix
+#' @importFrom ggplot2 ggplot aes geom_jitter position_jitter geom_point guides guide_legend
+#' @importFrom ggplot2 scale_color_manual scale_x_continuous theme xlab ylab
+#' @importFrom rlang .data
 #' @import methods
 #' @import stats
 NULL

@@ -96,7 +96,7 @@ PlotEigengap <- function(C){
 
   e <- C@eigenvals
   edf <- data.frame(x = seq_len(length(e)), y = e)
-  ggplot(edf,aes(x = x, y = y)) + geom_point() +
+  ggplot(edf,aes(x = .data$x, y = .data$y)) + geom_point() +
     xlab("index") +
     ylab("eigenvalues") +
     scale_x_continuous(breaks=seq_len(length(e)))
@@ -160,7 +160,7 @@ PlotEmbedding <- function(C){
 	embed <- C@embedding[,2:3]
 	embed <- setNames(data.frame(embed),paste("component_",seq_len(2),sep=""))
 
-	ggplot2::ggplot(embed,aes(x = component_1,y = component_2, color=as.character(C@cluster_labels))) +
+	ggplot2::ggplot(embed,aes(x = .data$component_1,y = .data$component_2, color=as.character(C@cluster_labels))) +
 	geom_point(size=1) +
 	guides(color=guide_legend(title="cluster")) +
 	scale_color_manual(values=color_palette)
@@ -222,7 +222,7 @@ PlotMarker <- function(C,gene_index){
   embed <- setNames(data.frame(embed),paste("component_",seq_len(2),sep=""))
   embed$counts <- C@counts[gene_index,]
 
-  ggplot(embed[embed$counts != 0,],aes(x = component_1,y = component_2, color=counts)) +
+  ggplot(embed[embed$counts != 0,],aes(x = .data$component_1,y = .data$component_2, color=.data$counts)) +
     geom_point(data = embed[embed$counts == 0,],size=0.5,color="gray") +
     geom_point(size=1) +
     guides(color=guide_legend(title="marker gene counts")) +

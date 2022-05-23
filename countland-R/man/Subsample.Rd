@@ -4,12 +4,14 @@
 \alias{Subsample}
 \title{Subsample cells to a standard number of counts by randomly sampling observations without replacement.}
 \usage{
-Subsample(C, n_counts)
+Subsample(C, gene_counts = NA, cell_counts = NA)
 }
 \arguments{
 \item{C}{countland object}
 
-\item{n_counts}{number of counts to subsample, must be larger than min total counts per cell}
+\item{gene_counts}{maximum total counts for genes}
+
+\item{cell_counts}{sequencing depth for all cells, or "min" to use the minimum cell total}
 }
 \value{
 countland object with slot \code{subsample}

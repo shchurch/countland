@@ -21,7 +21,8 @@ Imports:
     RSpectra,
     Seurat,
     stats,
-    viridis
+    viridis,
+    rlang
 Suggests: 
     knitr,
     rmarkdown,
