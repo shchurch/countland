@@ -4,12 +4,12 @@
 \alias{ScoreGenes}
 \title{Calculate several scores for count-based gene expression.}
 \usage{
-ScoreGenes(C, subsample = TRUE)
+ScoreGenes(C, subsample = FALSE)
 }
 \arguments{
 \item{C}{countland object}
 
-\item{subsample}{if TRUE, use subsampled counts (default), otherwise use counts}
+\item{subsample}{if TRUE, use subsampled counts, otherwise use counts (default=FALSE)}
 }
 \value{
 countland object with slot gene_scores

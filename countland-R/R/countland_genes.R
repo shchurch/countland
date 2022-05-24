@@ -121,11 +121,11 @@ CountIndex<-function(lm){
 #' Calculate several scores for count-based gene expression.
 #'
 #' @param C countland object
-#' @param subsample if TRUE, use subsampled counts (default), otherwise use counts
+#' @param subsample if TRUE, use subsampled counts, otherwise use counts (default=FALSE)
 #'
 #' @return countland object with slot gene_scores
 #' @export
-ScoreGenes <- function(C,subsample=TRUE){
+ScoreGenes <- function(C,subsample=FALSE){
 
     if(subsample==FALSE){
         sg <- Matrix::t(C@counts)
