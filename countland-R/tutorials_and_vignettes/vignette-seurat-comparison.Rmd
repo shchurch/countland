@@ -1,8 +1,8 @@
 ---
-title: "vignette_seurat_comparison"
+title: "countland and Seurat"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{vignette_seurat_comparison}
+  %\VignetteIndexEntry{countland and Seurat}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -14,11 +14,6 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r setup}
-library(countland)
-```
-
-# countland - Seurat
 ### Samuel H. Church
 
 This vignette shows how `countland` can be used to perform the steps of the standard data processing and clustering workflow from `Seurat`, as listed in [this tutorial](https://satijalab.org/seurat/articles/pbmc3k_tutorial.html).
@@ -26,6 +21,7 @@ This vignette shows how `countland` can be used to perform the steps of the stan
 Load the required packages
 
 ```{r load,results=F,message=F}
+library(countland)
 library(dplyr)
 library(Seurat)
 library(networkD3)
@@ -34,7 +30,7 @@ library(ggplot2)
 theme_set(theme_classic())
 ```
 
-## GET THE DATA
+## Get the data
 
 Here we are using the Gold standard dataset from [Freytag _et al_](10.12688/f1000research.15809.2), here's a look at it before filtering.
 
@@ -44,10 +40,10 @@ gold.data <- Seurat::Read10X(data.dir = "../../data/Gold_Freytag2018")
 
 ```{r countland-init}
 C <- countland(gold.data,remove_empty=TRUE)
-C@names_genes <- gsub("_","-",C@names_genes)
+C@names_genes <- gsub("_","-",C@names_genes) # set names equal to Seurat
 ```
 
-## DATA FILTERING 
+## Filter
 
 The `Seurat` tutoral provides instructions on filtering cells, for example cells with more than 200 unique gene observations and genes observed in 3 cells. With `countland` it may not be necessary or helpful to filter the data based on sparsity.
 
@@ -80,7 +76,7 @@ head(C@cell_scores)
 
 After filtering, both datasets have `r nrow(C@counts)` genes and `r ncol(C@counts)` cells.
 
-## DETECTING HIGHLY VARIABLE FEATURES
+## Detect highly variable features
 
 `Seurat` detects highly variable genes by calculating a form of mean and variance using a dispersion estimate, and then filters the dataset to the top 2,000 genes based on variance.
 
@@ -88,10 +84,10 @@ After filtering, both datasets have `r nrow(C@counts)` genes and `r ncol(C@count
 gold <- FindVariableFeatures(gold, selection.method = "vst", nfeatures = 2000)
 ```
 
-`countland` calculates several count-based measures of gene expression, including the number of unique count observations, and the count-index, which is the largest number of _n_ cells with more than _n_ counts. To standardize sampling depth, we can subsample observations per cell to a fixed number.
+`countland` calculates several count-based measures of gene expression, including the number of unique count observations, and the count-index, which is the largest number _n_ where there are _n_ cells with more than _n_ counts. To standardize sequencing depth before scoring genes, we can subsample observations per cell to a fixed number.
 
 ```{r countland-var}
-C <- Subsample(C,n_counts=40000)
+C <- Subsample(C,cell_counts=40000)
 C <- ScoreGenes(C,subsample=TRUE)
 head(C@gene_scores)
 ```
@@ -102,9 +98,9 @@ However, in `countland`, we don't recommend any default filtering scheme based o
 C <- SubsetGenes(C,which(C@names_genes %in% gold@assays$RNA@var.features))
 ```
 
-## CLUSTER CELLS
+## Cluster cells
 
-Seurat clusters the data by normalizing, rescaling, calculating distances in PC space, and then clustering the neighborhood graph of that distance matrix.
+`Seurat` clusters the data by normalizing, rescaling, calculating distances in PC space, and then clustering the neighborhood graph of that distance matrix.
 
 ```{r seurat-cluster,results=F,message=F}
 gold <- NormalizeData(gold)
@@ -116,7 +112,7 @@ gold <- FindClusters(gold, resolution = 0.05)
 gold <- RunUMAP(gold, dims = 1:10)
 ```
 
-countland clusters by calculating dot products between cells, and then embedding the graph laplacian of that similarity matrix.
+`countland` clusters by calculating dot products between cells, and then embedding the graph laplacian of that similarity matrix.
 
 ```{r countland-cluster,results=F}
 C <- Dot(C)
@@ -124,7 +120,7 @@ C <- Embed(C)
 C <- Cluster(C,n_clusters=3,n_components=5)
 ```
 
-## VISUALIZE RESULTS
+## Visualize results
 
 Here we plot results using the UMAP embedding calculated in `Seurat`.
 
