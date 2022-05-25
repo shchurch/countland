@@ -109,8 +109,9 @@ Subsample <- function(C,gene_counts=NA,cell_counts=NA){
 #'
 #' @return count index = largest n where n cells have >= n counts
 CountIndex<-function(lm){
-    vals_geq <- sapply(unique(lm),function(x){sum(lm >= x)})
-    values <- unique(lm)
+    values <- seq(min(lm),max(lm))
+    vals_geq <- sapply(values,function(x){sum(lm >= x)})
+
     if(any(vals_geq >= values)) {
         return(max(values[vals_geq >= values]))
     } else {
