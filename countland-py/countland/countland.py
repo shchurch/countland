@@ -238,8 +238,10 @@ class countland:
         """
         Internal function for calculating count index
         """
+        
+        unique = np.array(range(np.max(c))) + 1
+        counts = np.array([(np.count_nonzero(c >= xi)) for xi in unique])
 
-        unique, counts = np.unique(c, return_counts=True)
         check_zero = sum(counts >= unique)
         if check_zero == 0:
             index = 0
