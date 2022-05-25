@@ -61,7 +61,7 @@ class countland:
         Keeps only cells listed in numpy array
     Subsample(n_counts)
         Subsamples cells to standard number of total counts
-    ScoreGenes(subsample=True)
+    ScoreGenes(subsample=False)
         Calculates several expression scores based on counts
     Dot(subsample=False)
         Calculates pairwise dot products between all cells based on counts
@@ -287,7 +287,7 @@ class countland:
 
         if gene_string is not None:
             ng = pd.Series(self.names_genes)
-            gene_string_match = ng.str.match(gene_string)
+            gene_string_match = ng.str.contains(gene_string,regex=True)
             new_cts = cts[:, np.where(gene_string_match)[0]]
             df["feature_match_counts"] = np.sum(new_cts, axis=1)
 
@@ -332,7 +332,7 @@ class countland:
             self._SubsampleRow, 1, self.counts, n_counts=n_counts
         )
 
-    def ScoreGenes(self, subsample=True):
+    def ScoreGenes(self, subsample=False):
         """
         Calculates several scores for count-based gene expression.
         ...
@@ -340,8 +340,8 @@ class countland:
         Parameters
         ----------
         subsample : bool
-            if true (default), score genes using subsampled counts
-            otherwise, score counts using the unsampled count matrix
+            if True, score genes using subsampled counts
+            otherwise (default), score counts using the unsampled count matrix
 
         Adds
         ----------
