@@ -638,49 +638,7 @@ class countland:
         fig.tight_layout()
         return self
 
-    def PlotUMAP(self, subsample=True, min_dist=0.5):
-
-        assert hasattr(
-            self, "cluster_labels"
-        ), "expecting cluster labels from spectral clustering, use Cluster() to calculate"
-
-        if subsample:
-            c = self.subsample
-        else:
-            c = self.counts
-
-        u = umap.UMAP(min_dist=min_dist)
-        embed = u.fit_transform(c)
-
-        self.umap = embed
-
-        fig, axes = plt.subplots(ncols=2, nrows=1, figsize=(8, 4))
-
-        sns.scatterplot(
-            ax=axes[0],
-            x=embed[:, 0],
-            y=embed[:, 1],
-            hue=self.cluster_labels,
-            palette="tab10",
-            s=10,
-            linewidth=0,
-        )
-        sns.scatterplot(
-            ax=axes[1],
-            x=embed[:, 0],
-            y=embed[:, 1],
-            hue=np.sum(self.counts, axis=1),
-            s=10,
-            linewidth=0,
-            palette="viridis",
-        )
-        axes[0].legend(loc=(1.04, 0))
-        axes[1].legend(loc=(1.04, 0))
-        fig.tight_layout()
-
-        return self
-
-    def RankMarkerGenes(self, method="prop-zero", subsample=True):
+    def RankMarkerGenes(self, method="prop-zero", subsample=False):
         """
         Ranks the top marker gene for each cluster from spectral clustering
         ...
@@ -692,8 +650,8 @@ class countland:
             cells that have zero counts ('frac-zero' = default) or
             the Wilcoxon rank sums statistic ('rank-sums')
         subsample : bool
-            if true (default), score genes using subsampled counts
-            otherwise, score counts using the unsampled count matrix
+            if true, score genes using subsampled counts
+            otherwise (default=False), score counts using the unsampled count matrix
 
         Adds
         ----------
@@ -702,10 +660,13 @@ class countland:
         marker_full : pandas.DataFrame
             list of dataframes of all ranked genes for each cluster
         """
-        if subsample:
+        if subsample is False:
+            sg = self.counts
+        else:
             assert hasattr(
                 self, "subsample"
             ), "expecting array of subsampled counts, use subsample() or select subsample=False to use unsampled count matrix"
+            sg = self.subsample
 
         cluster = np.unique(self.cluster_labels)
         n = len(self.names_genes)
@@ -721,8 +682,8 @@ class countland:
                 res = np.zeros((n, 2))
                 for i in range(n):
                     res[i, :] = mannwhitneyu(
-                        self.counts[cluster_cells, i].ravel(),
-                        self.counts[noncluster_cells, i].ravel(),
+                        sg[cluster_cells, i].ravel(),
+                        sg[noncluster_cells, i].ravel(),
                         alternative="greater",
                     )
 
@@ -733,10 +694,10 @@ class countland:
 
             elif method == "prop-zero":
                 cluster_positive = np.count_nonzero(
-                    self.counts[cluster_cells[0], :], axis=0
+                    sg[cluster_cells[0], :], axis=0
                 )
                 noncluster_positive = np.count_nonzero(
-                    self.counts[noncluster_cells[0], :], axis=0
+                    sg[noncluster_cells[0], :], axis=0
                 )
 
                 prop_cluster = cluster_positive / np.size(cluster_cells)
