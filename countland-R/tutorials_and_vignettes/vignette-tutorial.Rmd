@@ -57,7 +57,7 @@ Note that most counts are zero for scRNA-seq data.
 
 ## Summarize counts across cells and genes
 
-We can explore our data by checking the total number of counts and other expression measures per cell and per gene.
+We can explore our data by checking the total number of counts and other expression measures across cells.
 
 Expression measures include: 
 * total counts
@@ -78,6 +78,8 @@ C <- ScoreCells(C,gene_string)
 head(C@cell_scores)
 ```
 
+We can also calculate the same meaures, but across cells.
+
 ```{r gene-score}
 # calculate expression scores across genes
 C <- ScoreGenes(C)
@@ -86,7 +88,7 @@ head(C@gene_scores)
 
 ## Cluster cells by similarity
 
-The dot (or inner) product is a measure of similarity between vectors. In this case, it tells us how similar two cells are based on the proportions of transcript counts, and scaled by the total counts per cell. A dot product of 0 indicates orthogonal cell vectors (no shared counts), larger values indicate aligned cell vectors.
+The dot (or inner) product is a measure of similarity between vectors. In this case, it tells us how similar two cells are based on the distribution of transcript counts, and scaled by the total counts per cell. A dot product of 0 indicates orthogonal cell vectors (no shared counts), larger values indicate aligned cell vectors.
 
 ```{r dots}
 C <- Dot(C)
@@ -119,38 +121,6 @@ We can now visualize clusters using spectral embedding.
 
 ```{r plot-cluster,fig.width=6}
 PlotEmbedding(C)
-```
-
-## Identify marker genes
-
-What makes a gene an ideal marker for a cluster may depend on downstream applications. For example, the ideal marker gene might be defined as the gene detected in all cells in a given cluster and none of the rest.
-
-Under this definition, the top marker gene for each cluster can be identified by counting and comparing the number of non-zero cells.
-
-```{r marker-zero}
-C <- RankMarkerGenes(C,method='prop-zero')
-C@marker_genes[(C@marker_genes$cluster_label == 1),]
-```
-
-```{r plot-marker-zero,fig.width=6}
-cluster_marker <- C@marker_genes[C@marker_genes$cluster_label == 1,]
-cluster_top <- cluster_marker[cluster_marker$rank == 1,]$names
-gene_index = which(C@names_genes == cluster_top)
-PlotMarker(C,gene_index)
-```
-
-Alternatively, the top marker genes for each cluster can be identified by ranking genes according to differential gene expression, calculated using the Wilcoxon rank-sum statistic.
-
-```{r marker-ranks}
-C <- RankMarkerGenes(C,method='rank-sums')
-C@marker_genes[(C@marker_genes$cluster_label == 1),]
-```
-
-```{r plot-marker-ranks,fig.width=6}
-cluster_marker <- C@marker_genes[C@marker_genes$cluster_label == 1,]
-cluster_top <- cluster_marker[cluster_marker$rank == 1,]$names
-gene_index = which(C@names_genes == cluster_top)
-PlotMarker(C,gene_index)
 ```
 
 ## Subsampling data
@@ -196,5 +166,38 @@ With `countland`, such data filtering may not be necessary or helpful. The origi
 
 ```{r restore}
 C <- RestoreCounts(C)
+```
+
+## Identify marker genes
+
+What makes a gene an ideal marker for a cluster may depend on downstream applications. For example, the ideal marker gene might be defined as the gene detected in all cells in a given cluster and none of the rest. Under this definition, the top marker gene for each cluster can be identified by counting and comparing the number of non-zero cells.
+
+```{r marker-zero}
+C <- RankMarkerGenes(C,method='prop-zero',subsample=F)
+C@marker_genes[(C@marker_genes$cluster_label == 1),]
+```
+
+```{r plot-marker-zero,fig.width=6}
+cluster_marker <- C@marker_genes[C@marker_genes$cluster_label == 1,]
+cluster_top <- cluster_marker[cluster_marker$rank == 1,]$names
+gene_index = which(C@names_genes == cluster_top)
+PlotMarker(C,gene_index)
+```
+
+Alternatively, the top marker genes for each cluster can be identified by ranking genes according to differential gene expression, calculated using the Wilcoxon rank-sum statistic.
+
+When calculating differential gene expression, it typically makes sense to subsample cells to a standard sequencing depth.
+
+```{r marker-ranks}
+C <- Subsample(C,cell_counts='min')
+C <- RankMarkerGenes(C,method='rank-sums',subsample=T)
+C@marker_genes[(C@marker_genes$cluster_label == 1),]
+```
+
+```{r plot-marker-ranks,fig.width=6}
+cluster_marker <- C@marker_genes[C@marker_genes$cluster_label == 1,]
+cluster_top <- cluster_marker[cluster_marker$rank == 1,]$names
+gene_index = which(C@names_genes == cluster_top)
+PlotMarker(C,gene_index)
 ```
 

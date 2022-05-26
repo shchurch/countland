@@ -170,11 +170,22 @@ PlotEmbedding <- function(C){
 #'
 #' @param C countland object
 #' @param method `prop-zero` to rank by proportion of cells that are non-zero (default), or `rank-sums` to rank using Wilcoxon rank-sums test
+#' @param subsample if TRUE, use subsampled counts, otherwise use counts (default=FALSE)
 #'
 #' @return countland object with slots `marker_genes` and `marker_full`
 #' @export
-RankMarkerGenes <- function(C,method='prop-zero'){
-	cluster <- C@cluster_labels
+RankMarkerGenes <- function(C,method='prop-zero',subsample=FALSE){
+  if(subsample==FALSE){
+    counts <- C@counts
+  } else {
+    if(length(C@subsample)!=0){
+      counts <- C@subsample
+    } else {
+      stop("expecting array of subsampled counts, use subsample() or select subsample=False to use unsampled count matrix")
+    }
+  }
+
+  cluster <- C@cluster_labels
 	n <- length(C@names_genes)
 	rankdfs <- list()
 	for(c in seq_len(length(unique(cluster)))){
@@ -182,8 +193,8 @@ RankMarkerGenes <- function(C,method='prop-zero'){
 		noncluster_cells <- which(cluster != c)
 		rankdf <- data.frame()
 		if(method=="rank-sums"){
-			cluster_counts <- as(Matrix::t(C@counts[,cluster_cells]),"matrix")
-			noncluster_counts <- as(Matrix::t(C@counts[,noncluster_cells]),"matrix")
+			cluster_counts <- as(Matrix::t(counts[,cluster_cells]),"matrix")
+			noncluster_counts <- as(Matrix::t(counts[,noncluster_cells]),"matrix")
 			res <- matrixTests::col_wilcoxon_twosample(cluster_counts,noncluster_counts,alternative="greater",exact=F)
 			adjpvals <- p.adjust(res$pvalue,method="fdr")
 			rankdf <- setNames(data.frame(C@names_genes,seq_len(n),res$statistic,res$pvalue,adjpvals),c("names","gene_index","statistic","pvalue","adj.pvalue"))
@@ -191,8 +202,8 @@ RankMarkerGenes <- function(C,method='prop-zero'){
 			rankdf <- rankdf[order(adjpvals),]
 			rankdf$rank <- seq_len(n)
 		} else if(method=="prop-zero"){
-			cluster_positive <- apply(C@counts[,cluster_cells],1,function(x){sum(x!=0)})
-			noncluster_positive <- apply(C@counts[,noncluster_cells],1,function(x){sum(x!=0)})
+			cluster_positive <- apply(counts[,cluster_cells],1,function(x){sum(x!=0)})
+			noncluster_positive <- apply(counts[,noncluster_cells],1,function(x){sum(x!=0)})
 			prop_cluster <- cluster_positive / length(cluster_cells)
 			prop_noncluster <- noncluster_positive / length(noncluster_cells)
 			prop_a <- prop_cluster - prop_noncluster

@@ -4,12 +4,14 @@
 \alias{RankMarkerGenes}
 \title{Rank the top marker genes for each cluster from spectral clustering.}
 \usage{
-RankMarkerGenes(C, method = "prop-zero")
+RankMarkerGenes(C, method = "prop-zero", subsample = FALSE)
 }
 \arguments{
 \item{C}{countland object}
 
 \item{method}{\code{prop-zero} to rank by proportion of cells that are non-zero (default), or \code{rank-sums} to rank using Wilcoxon rank-sums test}
+
+\item{subsample}{if TRUE, use subsampled counts, otherwise use counts (default=FALSE)}
 }
 \value{
 countland object with slots \code{marker_genes} and \code{marker_full}
