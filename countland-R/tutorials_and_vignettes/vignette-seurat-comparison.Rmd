@@ -28,6 +28,8 @@ library(networkD3)
 library(patchwork)
 library(ggplot2)
 theme_set(theme_classic())
+
+set.seed(84095) # choose a random seed for reproducibility
 ```
 
 ## Get the data

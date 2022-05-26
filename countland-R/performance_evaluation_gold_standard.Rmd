@@ -113,27 +113,27 @@ get_cluster_colors <- function(obj){
   corr <- r %>% group_by(source) %>% arrange(source,desc(n)) %>% slice(1L)
 
   # assign colors by labels
-  real_colors <- c("dark gray","dark cyan","orange"); names(real_colors) <- corr$source
+  real_colors <- c("dark cyan","orange","dark gray"); names(real_colors) <- corr$source
   cluster_colors <- real_colors; names(cluster_colors) <- corr$target
   return(list(real_colors,cluster_colors))
 }
 ```
 
-```{r plot-spectral-gold,fig.height=4,fig.width=6,fig.align="center"}
+```{r plot-spectral-gold,fig.height=4,fig.width=7,fig.align="center"}
 cols <- get_cluster_colors(C)
 
 u1 <- C@embedding[,2];u2 <- C@embedding[,3]
 gdf <- data.frame("component_1" = u1, "component_2" = u2, "real_label" = real_labels, "countland_clusters" = countland_labels)
 
 g1 <- ggplot(gdf,aes(x = component_1, y = component_2, color = real_label)) + 
-  geom_point(size=1) + 
+  geom_point(size=1,alpha=0.6,pch=16) + 
   scale_color_manual(values=cols[[1]]) + 
   theme("legend.position" = "none") + 
   ggtitle("ground truth cell labels") + 
   theme(axis.ticks = element_blank(),axis.text = element_blank()) + 
   xlab("dimension 1") + ylab("dimension 2")
 g2 <- ggplot(gdf,aes(x = component_1, y = component_2, color = countland_clusters)) +
-  geom_point(size=1) + 
+  geom_point(size=1,alpha=0.6,pch=16) + 
   scale_color_manual(values=cols[[2]]) + 
   theme("legend.position" = "none") + 
   ggtitle("countland, raw counts") + 
@@ -260,20 +260,20 @@ kable(t(sparse_results),caption="cluster evaluation")
 
 Here we visualize the results.
 
-```{r plot-spectral-sparse,fig.height=4,fig.width=6,fig.align="center"}
+```{r plot-spectral-sparse,fig.height=4,fig.width=7,fig.align="center"}
 cols <- get_cluster_colors(Z)
 
 u1 <- Z@embedding[,2];u2 <- Z@embedding[,3]
 gdf <- data.frame("component_1" = u1, "component_2" = u2, "real_label" = real_labels, "countland_clusters" = countland_labels)
 
 g1 <- ggplot(gdf,aes(x = component_1, y = component_2, color = real_label)) + 
-  geom_point(size=1) +
+  geom_point(size=1,alpha=0.6,pch=16) +
   scale_color_manual(values=cols[[1]]) + 
   theme("legend.position" = "none") + 
   ggtitle("ground truth cell labels") + 
   theme(axis.ticks = element_blank(),axis.text = element_blank())
 g2 <- ggplot(gdf,aes(x = component_1, y = component_2, color = countland_clusters)) +
-  geom_point(size=1) +
+  geom_point(size=1,alpha=0.6,pch=16) +
   scale_color_manual(values=cols[[2]]) + 
   theme("legend.position" = "none") + 
   ggtitle("countland: spectral clustering") + 
@@ -336,7 +336,7 @@ rownames(cell_het_results) <- c("countland, raw counts", "countland, subsampled 
 kable(t(cell_het_results),caption="cluster evaluation")
 ```
 
-```{r plot-spectral-het,fig.height=4,fig.width=9,fig.align="center"}
+```{r plot-spectral-het,fig.height=4,fig.width=10,fig.align="center"}
 cols <- get_cluster_colors(HS)
 
 u1 <- HS@embedding[,2]
@@ -344,21 +344,21 @@ u2 <- HS@embedding[,3]
 gdf <- data.frame("component_1" = u1, "component_2" = u2, "real_label" = real_labels, "countland_clusters" = countland_sub_labels, "total_counts"= apply(HS@counts,2,sum))
 
 g1 <- ggplot(gdf,aes(x = component_1, y = component_2, color = real_label)) + 
-  geom_point(size=1) + 
+  geom_point(size=1,alpha=0.6,pch=16) + 
   scale_color_manual(values=cols[[1]]) + 
   theme("legend.position" = "none") + 
   ggtitle("ground truth cell labels") + 
   theme(axis.ticks = element_blank(),axis.text = element_blank())
 g2 <- ggplot(gdf,aes(x = component_1, y = component_2, color = countland_clusters)) +
-  geom_point(size=1) + 
+  geom_point(size=1,alpha=0.6,pch=16) + 
   scale_color_manual(values=cols[[2]]) + 
   theme("legend.position" = "none") + 
   ggtitle("countland: spectral clustering") + 
   theme(axis.ticks = element_blank(),axis.text = element_blank())
 g3 <- ggplot(gdf,aes(x = component_1, y = component_2, color = total_counts)) +
-  geom_point(size=1) + 
+  geom_point(size=1,alpha=0.6,pch=16) + 
   scale_color_viridis(option="B") + 
-  theme("legend.position" = "none") + 
+  #theme("legend.position" = "none") + 
   ggtitle("total counts") + 
   theme(axis.ticks = element_blank(),axis.text = element_blank())
 
@@ -371,10 +371,10 @@ Here we show the results from `Seurat` on the same dataset. Note that despite no
 ```{r plot-seurat-hetero,fig.height=4,fig.width=9,fig.align="center"}
 sgdf <- data.frame(UMAP1 = seurat_het@reductions$umap@cell.embeddings[,1],UMAP2 =seurat_het@reductions$umap@cell.embeddings[,2], cluster = seurat_het@meta.data$seurat_clusters, total_counts = apply(H@counts,2,sum) )
 g1 <- ggplot(sgdf,aes(x = UMAP1, y = UMAP2, color = cluster)) + 
-  geom_point(size=1) + 
+  geom_point(size=1,alpha=0.6,pch=16) + 
   scale_color_manual(values = c("dark gray","dark orange","dark cyan"))
 g2 <- ggplot(sgdf,aes(x = UMAP1, y = UMAP2, color = total_counts)) + 
-  geom_point(size=1) + scale_color_viridis(option="B")
+  geom_point(size=1,alpha=0.6,pch=16) + scale_color_viridis(option="B")
 grid.arrange(g1,g2,ncol=2)
 ```
 
@@ -446,13 +446,13 @@ u2 <- GS@embedding[,3]
 gdf <- data.frame("component_1" = u1, "component_2" = u2, "real_label" = real_labels, "countland_clusters" = countland_sub_labels)
 
 g1 <- ggplot(gdf,aes(x = component_1, y = component_2, color = real_label)) + 
-  geom_point(size=1) + 
+  geom_point(size=1,alpha=0.6,pch=16) + 
   scale_color_manual(values=cols[[1]]) + 
   theme("legend.position" = "none") + 
   ggtitle("ground truth cell labels") + 
   theme(axis.ticks = element_blank(),axis.text = element_blank())
 g2 <- ggplot(gdf,aes(x = component_1, y = component_2, color = countland_clusters)) +
-  geom_point(size=1) + 
+  geom_point(size=1,alpha=0.6,pch=16) + 
   scale_color_manual(values=cols[[2]]) + 
   theme("legend.position" = "none") + 
   ggtitle("countland: spectral clustering") + 

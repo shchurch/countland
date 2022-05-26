@@ -29,7 +29,7 @@ library(ggplot2)
 theme_set(theme_classic())
 ```
 
-## GET THE DATA
+## Get the data
 
 We have used the Gold standard dataset provided by [Freytag _et al_ (2018)](10.12688/f1000research.15809.2). This data consists of ~1000 cells that have ground truth labels corresponding to three human lung cell lines.
 
@@ -86,7 +86,7 @@ head(C@gene_scores)
 
 ## Cluster cells by similarity
 
-The dot (or inner) product is a measure of alignment between vectors. In this case, it tells us how similar two cells are based on the proportions of counts, and scaled by the total counts per cell. A dot product of 0 indicates orthogonal cell vectors (no shared counts), larger values indicate aligned cell vectors.
+The dot (or inner) product is a measure of similarity between vectors. In this case, it tells us how similar two cells are based on the proportions of transcript counts, and scaled by the total counts per cell. A dot product of 0 indicates orthogonal cell vectors (no shared counts), larger values indicate aligned cell vectors.
 
 ```{r dots}
 C <- Dot(C)
@@ -115,8 +115,6 @@ Here we have chosen 3 as the optimal number of clusters.
 C <- Cluster(C,n_clusters=3)
 ```
 
-### Visualize results with spectral embedding
-
 We can now visualize clusters using spectral embedding.
 
 ```{r plot-cluster,fig.width=6}
@@ -141,7 +139,7 @@ gene_index = which(C@names_genes == cluster_top)
 PlotMarker(C,gene_index)
 ```
 
-Alternatively, the top marker genes for each cluster can be identified by ranking genes using the Wilcoxon rank-sum statistic.
+Alternatively, the top marker genes for each cluster can be identified by ranking genes according to differential gene expression, calculated using the Wilcoxon rank-sum statistic.
 
 ```{r marker-ranks}
 C <- RankMarkerGenes(C,method='rank-sums')
@@ -175,7 +173,8 @@ You can create an alternate count matrix where gene expression is bounded at a m
 C <- Subsample(C,gene_counts=10*ncol(C@counts)) # doing so will overwrite our previous subsampled matrix 
 
 # to subsample both genes and cells, use gene_counts and cell_counts in the same function. Genes will be subsampled first.
-C <- Subsample(C,gene_counts=10*ncol(C@counts),cell_counts='min')
+
+#C <- Subsample(C,gene_counts=10*ncol(C@counts),cell_counts='min')
 ```
 
 ## Subsetting data

@@ -134,7 +134,7 @@ color_palette <- c("#8c564b", "#9467bd", "#2ca02c", "#e377c2", "#d62728", "#17be
 factors <- res$factors
 glmpca_df <- data.frame("component_1" = factors[,1],"component_2"=factors[,2],"cluster"=C@cluster_labels)
 	ggplot(glmpca_df,aes(x = component_1,y = component_2, color=as.character(cluster))) +
-  geom_point(size=1) +
+  geom_point(size=1,alpha=0.6,pch=16) +
   guides(color=guide_legend(title="cluster")) +
   scale_color_manual(values=color_palette)
 ```
@@ -183,7 +183,7 @@ all_embeddings$cell <- rep(C@names_cells,5)
 
 g1 <- ggplot(data = all_embeddings %>% filter(type == "spectral"), 
 	aes(x = embedding_1, y = embedding_2, color = cell_label)) + 
-	geom_point(size = 0.5) + 
+	geom_point(size = 0.75,alpha=0.6,pch=16) + 
 	theme(legend.position = "none") + 
 	ggtitle("spectral embedding") + 
 	scale_color_manual(values=c("dark cyan","dark orange","dark gray")) + 
@@ -193,7 +193,7 @@ g1 <- ggplot(data = all_embeddings %>% filter(type == "spectral"),
 		axis.title=element_text(size=8))
 g2 <- ggplot(data = all_embeddings %>% filter(type == "shared_counts"), 
 	aes(x = embedding_1, y = embedding_2, color = cell_label)) + 
-	geom_point(size = 0.5) + 
+	geom_point(size = 0.75,alpha=0.6,pch=16) + 
 	theme(legend.position = "none") + 
 	ggtitle("shared counts reduction") + 
 	scale_color_manual(values=c("dark cyan","dark orange","dark gray")) + 
@@ -203,7 +203,7 @@ g2 <- ggplot(data = all_embeddings %>% filter(type == "shared_counts"),
 		axis.title=element_text(size=8))
 g3 <- ggplot(data = all_embeddings %>% filter(type == "IMA"), 
 	aes(x = embedding_1, y = embedding_2, color = cell_label)) + 
-	geom_point(size = 0.5) + 
+	geom_point(size = 0.75,alpha=0.6,pch=16) + 
 	theme(legend.position = "none")  + 
 	ggtitle("integer matrix approximation") + 
 	scale_color_manual(values=c("dark cyan","dark orange","dark gray")) + 
@@ -213,7 +213,7 @@ g3 <- ggplot(data = all_embeddings %>% filter(type == "IMA"),
 		axis.title=element_text(size=8))
 g4 <- ggplot(data = all_embeddings %>% filter(type == "GLMPCA"), 
 	aes(x = embedding_1, y = embedding_2, color = cell_label)) + 
-	geom_point(size = 0.5) + 
+	geom_point(size = 0.75,alpha=0.6,pch=16) + 
 	theme(legend.position = "none")  + 
 	ggtitle("GLM-PCA") + 
 	scale_color_manual(values=c("dark cyan","dark orange","dark gray")) + 
@@ -223,7 +223,7 @@ g4 <- ggplot(data = all_embeddings %>% filter(type == "GLMPCA"),
 		axis.title=element_text(size=8))
 g5 <- ggplot(data = all_embeddings %>% filter(type == "seuratUMAP"), 
 	aes(x = embedding_1, y = embedding_2, color = cell_label)) + 
-	geom_point(size = 0.5) + 
+	geom_point(size = 0.75,alpha=0.6,pch=16) + 
 	theme(legend.position = "none") + 
 	ggtitle("Seurat: UMAP") + 
 	scale_color_manual(values=c("dark cyan","dark orange","dark gray")) + 
