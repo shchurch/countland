@@ -31,6 +31,7 @@ from statsmodels.stats import multitest
 
 from IMA import IMA, IMA_params
 
+
 class countland:
     """
     A class used to represent a countland RNA count object
@@ -238,7 +239,7 @@ class countland:
         """
         Internal function for calculating count index
         """
-        
+
         unique = np.array(range(np.max(c))) + 1
         counts = np.array([(np.count_nonzero(c >= xi)) for xi in unique])
 
@@ -289,7 +290,7 @@ class countland:
 
         if gene_string is not None:
             ng = pd.Series(self.names_genes)
-            gene_string_match = ng.str.contains(gene_string,regex=True)
+            gene_string_match = ng.str.contains(gene_string, regex=True)
             new_cts = cts[:, np.where(gene_string_match)[0]]
             df["feature_match_counts"] = np.sum(new_cts, axis=1)
 
@@ -301,12 +302,13 @@ class countland:
         """
 
         transcripts = np.repeat(range(len(row)), row)
-        if(len(transcripts)==0):
-            return(row)
-        else:    
+        if len(transcripts) == 0:
+            return row
+        else:
             new_row = np.zeros_like(row)
             unique, counts = np.unique(
-                np.random.choice(transcripts, n_counts, replace=False), return_counts=True
+                np.random.choice(transcripts, n_counts, replace=False),
+                return_counts=True,
             )
             np.put(new_row, unique, counts)
             return new_row
@@ -331,31 +333,42 @@ class countland:
         subsample : numpy.ndarray
             New subsampled count matrix
         """
-        assert gene_counts or cell_counts, "must choose either gene_counts or cell_counts"
+        assert (
+            gene_counts or cell_counts
+        ), "must choose either gene_counts or cell_counts"
 
-        if(gene_counts):
+        if gene_counts:
             # set number to subsample to
             gene_total_counts = np.sum(self.counts, axis=0)
             above_threshold = gene_total_counts > gene_counts
             gene_total_counts[above_threshold] = gene_counts
-            logging.info("subsampling %s genes to a max total counts of %s",np.sum(above_threshold),gene_counts)
+            logging.info(
+                "subsampling %s genes to a max total counts of %s",
+                np.sum(above_threshold),
+                gene_counts,
+            )
 
             # subsample genes
             self.subsample = np.empty_like(self.counts)
             for i in range(self.counts.shape[1]):
-                self.subsample[:,i] = self._SubsampleRow(self.counts[:,i],gene_total_counts[i])
+                self.subsample[:, i] = self._SubsampleRow(
+                    self.counts[:, i], gene_total_counts[i]
+                )
 
-        if(cell_counts):
+        if cell_counts:
             # get the matrix
-            if(gene_counts):
+            if gene_counts:
                 counts = self.subsample
             else:
                 counts = self.counts
 
             # set number to subsample to
-            if(cell_counts == 'min'):
+            if cell_counts == "min":
                 cell_counts = np.min(np.sum(counts, axis=1))
-            logging.info("subsampling all cells to a standard sequencing depth of %s",cell_counts)
+            logging.info(
+                "subsampling all cells to a standard sequencing depth of %s",
+                cell_counts,
+            )
 
             # subsample cells
             self.subsample = np.apply_along_axis(
@@ -693,9 +706,7 @@ class countland:
                 df["rank"] = df["test-statistic"].rank(ascending=False).astype(np.uint)
 
             elif method == "prop-zero":
-                cluster_positive = np.count_nonzero(
-                    sg[cluster_cells[0], :], axis=0
-                )
+                cluster_positive = np.count_nonzero(sg[cluster_cells[0], :], axis=0)
                 noncluster_positive = np.count_nonzero(
                     sg[noncluster_cells[0], :], axis=0
                 )
