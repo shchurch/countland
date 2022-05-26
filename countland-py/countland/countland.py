@@ -297,42 +297,70 @@ class countland:
 
     def _SubsampleRow(self, row, n_counts):
         """
-        Internal function for subsampling a row
+        Internal function for subsampling a matrix vector
         """
 
         transcripts = np.repeat(range(len(row)), row)
+        if(len(transcripts)==0):
+            return(row)
+        else:    
+            new_row = np.zeros_like(row)
+            unique, counts = np.unique(
+                np.random.choice(transcripts, n_counts, replace=False), return_counts=True
+            )
+            np.put(new_row, unique, counts)
+            return new_row
 
-        new_row = np.zeros_like(row)
-        unique, counts = np.unique(
-            np.random.choice(transcripts, n_counts, replace=False), return_counts=True
-        )
-        np.put(new_row, unique, counts)
-
-        return new_row
-
-    def Subsample(self, n_counts):
+    def Subsample(self, gene_counts=None, cell_counts=None):
         """
-        Subsamples cells to a standard number of counts by randomly sampling observations without replacement.
+        Subsamples the count matrix, either to a maximum expression across genes, or to a standard number of counts across cells, or both, by randomly sampling observations without replacement.
+
         ...
 
         Parameters
         ----------
-        n_counts : int
-            The target number of counts, must be larger than the minimum total counts per cell
-
+        gene_counts : int
+            The maximum total counts for genes
+            If None, genes will not be subsampled
+        cell_counts : int or 'min'
+            The sequencing depth for all cells, if "min", use the minimum cell total
+            If None, cells will not be subsampled
 
         Adds
         ----------
         subsample : numpy.ndarray
-            New count matrix with row (cell) sums equal
+            New subsampled count matrix
         """
-        assert all(
-            np.sum(self.counts, axis=1) > n_counts
-        ), "subsample size must be larger than smallest count per cell"
+        assert gene_counts or cell_counts, "must choose either gene_counts or cell_counts"
 
-        self.subsample = np.apply_along_axis(
-            self._SubsampleRow, 1, self.counts, n_counts=n_counts
-        )
+        if(gene_counts):
+            # set number to subsample to
+            gene_total_counts = np.sum(self.counts, axis=0)
+            above_threshold = gene_total_counts > gene_counts
+            gene_total_counts[above_threshold] = gene_counts
+            logging.info("subsampling %s genes to a max total counts of %s",np.sum(above_threshold),gene_counts)
+
+            # subsample genes
+            self.subsample = np.empty_like(self.counts)
+            for i in range(self.counts.shape[1]):
+                self.subsample[:,i] = self._SubsampleRow(self.counts[:,i],gene_total_counts[i])
+
+        if(cell_counts):
+            # get the matrix
+            if(gene_counts):
+                counts = self.subsample
+            else:
+                counts = self.counts
+
+            # set number to subsample to
+            if(cell_counts == 'min'):
+                cell_counts = np.min(np.sum(counts, axis=1))
+            logging.info("subsampling all cells to a standard sequencing depth of %s",cell_counts)
+
+            # subsample cells
+            self.subsample = np.apply_along_axis(
+                self._SubsampleRow, 1, counts, n_counts=cell_counts
+            )
 
     def ScoreGenes(self, subsample=False):
         """
