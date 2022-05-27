@@ -26,7 +26,7 @@ To activate the conda environment (before each use):
 
 The easiest way to run the tutorial is as a Google Colab notebook. Just open the following link and hit Runtime > Run all:
 
-https://colab.research.google.com/github/shchurch/countland/blob/main/countland-py/vignette_tutorial.ipynb
+https://colab.research.google.com/github/shchurch/countland/blob/main/countland-py/vignettes/vignette_tutorial.ipynb
 
 ## R
 

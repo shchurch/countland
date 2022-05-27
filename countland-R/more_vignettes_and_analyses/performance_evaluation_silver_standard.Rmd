@@ -1,0 +1,163 @@
+# countland: performance evaluation - Silver standard
+### Samuel H. Church
+
+This document applies `countland` to the analysis of a benchmark scRNA-seq dataset to test its performance.
+
+The following packages are required to run the analysis:
+
+```{r load,results=F,message=F}
+library(countland)
+library(Seurat)
+
+library(aricode)
+library(clevr)
+
+library(knitr)
+library(dplyr)
+library(ggplot2)
+library(viridis)
+library(gridExtra)
+theme_set(theme_classic())
+
+set.seed(84095)
+```
+
+## Get the data
+
+We have used the Silver standard dataset(3A) provided by [Freytag _et al_ (2018)](10.12688/f1000research.15809.2). This data consists of 4,300 cells that have reported labels corresponding to human blood cell lines.
+
+```{r data}
+silver.data <- Seurat::Read10X(data.dir = "../../data/Silver_Freytag2018/SilverDataset3a_Freytag2018")
+```
+
+## Analyze the Silver standard dataset 
+
+We first alculated several gene expression scores to create alternative matrices that take into account expression heterogeneity.
+
+```{r countland}
+C <- countland(silver.data,remove_empty = TRUE)
+C <- ScoreGenes(C,subsample=F)
+```
+
+```{r alternate-matrices}
+# downsample genes to a maximum total counts equal to the number of cells
+C_gene <- Subsample(C,gene_counts = ncol(C@counts))
+C_gene_low <- Subsample(C,gene_counts = ncol(C@counts)/2)
+
+# subset genes to bottom 50% of expressed genes
+subset <- C@names_genes %in% (C@gene_scores %>% filter(total_counts < quantile(total_counts,0.95)) %>% pull(names))
+C_subset <- SubsetGenes(C,gene_indices = subset)
+
+# downsample cells to standard sequencing depth
+C_cell <- Subsample(C,cell_counts = "min")
+C_gene_cell <- Subsample(C,gene_counts = ncol(C@counts)/2,cell_counts="min")
+```
+
+We ran countland on each of these matrices, using 11 clusters, corresponding to the reported cell labels.
+
+```{r run-countland, results=F}
+run_countland <- function(obj,clusters,components,subsample){
+  obj <- Dot(obj,subsample=subsample)
+  obj <- Embed(obj)
+  obj <- Cluster(obj,n_clusters=clusters,n_components=components)
+  return(obj)
+}
+
+C <- run_countland(C,11,11,F)
+C_gene <- run_countland(C_gene,11,11,T)
+C_gene_low <- run_countland(C_gene_low,11,11,T)
+C_subset <- run_countland(C_subset,11,11,F)
+C_cell <- run_countland(C_cell,11,11,T)
+C_gene_cell <- run_countland(C_gene_cell,11,11,T)
+```
+
+We evaluated our results using three measures: the adjusted rand index, normalized mutual information, and cluster homogeneity.
+
+```{r results}
+res <- list(C,C_gene,C_gene_low,C_subset,C_cell,C_gene_cell)
+rand <- sapply(res,function(x){ARI(gsub("_.*","",x@names_cells),x@cluster_labels)})
+nmi <- sapply(res,function(x){NMI(gsub("_.*","",x@names_cells),x@cluster_labels)})
+homog <- sapply(res,function(x){homogeneity(gsub("_.*","",x@names_cells),x@cluster_labels)})
+
+silver_results <- round(data.frame('adjusted rand index' = rand, 'norm. mutual info.' = nmi, "homogeneity" = homog, check.names=F),3)
+rownames(silver_results) <- c("raw counts","subsampled genes to n cells","subsampled genes to 0.5 * n_cells","dropped top 5% of genes","standard sequencing depth across cells","subsampled genes and standard sequencing depth")
+kable(t(silver_results),caption="cluster evaluation")
+```
+
+We compared our results to those obtained using `Seurat` on the same data. 
+
+```{r run-seurat}
+# this function runs Seurat using the standard workflow
+# default parameters are used, with the exception of resolution, which can be adjusted
+# and the option of using only highly variable features, vs using all features
+run_seurat <- function(counts,resolution,find_variable){
+  object <- CreateSeuratObject(counts = counts, project = "gold")
+  object <- NormalizeData(object)
+  all.genes <- rownames(object)
+  object <- ScaleData(object, features = all.genes)
+  if(find_variable == F){
+    object <- RunPCA(object, features = all.genes, verbose=F)
+  } else {
+    object <- FindVariableFeatures(object, selection.method = "vst", nfeatures = 2000)
+    object <- RunPCA(object, features = VariableFeatures(object = object), verbose=F)    
+  }
+  object <- FindNeighbors(object, dims = 1:10)
+  object <- FindClusters(object, resolution = resolution)
+  object <- RunUMAP(object, dims = 1:10)
+  return(object)
+}
+
+seurat_silver <- run_seurat(C@counts,0.8,find_variable=T)
+seurat_rand <- ARI(gsub("_.*","",seurat_silver$orig.ident),seurat_silver@meta.data$seurat_clusters)
+seurat_nmi <- NMI(gsub("_.*","",seurat_silver$orig.ident),seurat_silver@meta.data$seurat_clusters)
+seurat_homog <- homogeneity(gsub("_.*","",seurat_silver$orig.ident),seurat_silver@meta.data$seurat_clusters)
+
+silver_standard_results <- rbind(silver_results,round(c(seurat_rand,seurat_nmi,seurat_homog),3))
+rownames(silver_standard_results) <- c("countland, raw counts","subsampled genes to n cells","subsampled genes to 0.5 * n_cells","dropped top 5% of genes","standard sequencing depth across cells","subsampled genes and standard sequencing depth","Seurat")
+kable(silver_standard_results)
+save(silver_standard_results,file="performance_evaluation_silver_standard_results.RData")
+```
+
+Here we visualize our results.
+
+```{r plot,fig.height=8,fig.width=12,fig.align="center"}
+u1 <- C_subset@embedding[,2];u2 <- C_subset@embedding[,3]
+real_labels <- gsub("_.*","",C_subset@names_cells)
+countland_clusters <- as.character(C_subset@cluster_labels)
+gdf <- data.frame("component_1" = u1, "component_2" = u2, "real_labels" = real_labels, "countland_clusters" = countland_clusters)
+
+g1 <- ggplot(gdf,aes(x = component_1, y = component_2, color = real_labels)) + 
+  geom_point(size=1) +
+  scale_color_manual(values = viridis(option="D",12)) + 
+  ggtitle("ground truth cell labels") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank())
+
+g2 <- ggplot(gdf,aes(x = component_1, y = component_2, color = countland_clusters)) + 
+  geom_point(size=1) +
+  scale_color_manual(values = viridis(option="C",11)) + 
+  ggtitle("countland: subset top 5%") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank())
+
+u1 <- seurat_silver@reductions$umap@cell.embeddings[,1]
+u2 <- seurat_silver@reductions$umap@cell.embeddings[,2]
+real_labels <- gsub("_.*","",seurat_silver$orig.ident)
+seurat_clusters <- as.character(seurat_silver@meta.data$seurat_clusters)
+sgdf <- data.frame("component_1" = u1, "component_2" = u2, "real_labels" = real_labels, "seurat_clusters" = seurat_clusters)
+
+g3 <- ggplot(sgdf,aes(x = component_1, y = component_2, color = real_labels)) + 
+  geom_point(size=1) +
+  scale_color_manual(values = viridis(option="D",12)) + 
+  ggtitle("ground truth cell labels") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank())
+
+g4 <- ggplot(sgdf,aes(x = component_1, y = component_2, color = countland_clusters)) + 
+  geom_point(size=1) +
+  scale_color_manual(values = viridis(option="F",11)) + 
+  ggtitle("Seurat") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank())
+
+grid.arrange(g1,g2,g3,g4,ncol=2)
+```
+
+
+

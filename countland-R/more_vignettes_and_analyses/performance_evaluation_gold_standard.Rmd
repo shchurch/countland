@@ -1,0 +1,469 @@
+# countland: performance evaluation - Gold standard
+### Samuel H. Church
+
+This document applies `countland` to the analysis of a benchmark scRNA-seq dataset to test its performance.
+
+The following packages are required to run the analysis:
+
+```{r load,results=F,message=F,warning=F}
+library(countland)
+library(Seurat)
+
+library(aricode)
+library(clevr)
+
+library(knitr)
+library(dplyr)
+library(ggplot2)
+library(viridis)
+library(gridExtra)
+theme_set(theme_classic())
+
+# set a random seed to ensure reproducibility
+set.seed(84095)
+```
+
+## Get the data
+
+We have used the Gold standard dataset provided by [Freytag _et al_ (2018)](10.12688/f1000research.15809.2). This data consists of ~1000 cells that have ground truth labels corresponding to three human lung cell lines.
+
+```{r data}
+gold.data <- Read10X(data.dir = "../../data/Gold_Freytag2018/")
+m <- gold.data
+```
+
+## Analyzing the Gold standard dataset
+
+The following code tests the `countland` approach for identifying clusters of cells. In this analysis, we used `countland` to analyze raw counts, without any form of normalization, variance-stabilization, or subsampling.
+
+The number of clusters was set at `n_clusters=3`, corresponding to the ground truth number of cell populations in this dataset. 
+
+```{r countland-gold, results=F}
+C <- countland(m)
+C <- Dot(C)
+C <- Embed(C)
+C <- Cluster(C,n_clusters=3,n_components=5)
+```
+
+We compared the results from `countland` to those from `Seurat`. Note that the default parameters from the `Seurat` package use a resolution value of `0.8`, which results in more clusters than ground truth cell labels. Here we show the results using a lower resolution value as well.
+
+
+```{r run-seurat}
+# this function runs Seurat using the standard workflow
+# default parameters are used, with the exception of resolution, which can be adjusted
+# and the option of using only highly variable features, vs using all features
+run_seurat <- function(counts,resolution,find_variable){
+  object <- CreateSeuratObject(counts = counts, project = "gold")
+  object <- NormalizeData(object)
+  all.genes <- rownames(object)
+  object <- ScaleData(object, features = all.genes)
+  if(find_variable == F){
+    object <- RunPCA(object, features = all.genes, verbose=F)
+  } else {
+    object <- FindVariableFeatures(object, selection.method = "vst", nfeatures = 2000)
+    object <- RunPCA(object, features = VariableFeatures(object = object), verbose=F)    
+  }
+  object <- FindNeighbors(object, dims = 1:10)
+  object <- FindClusters(object, resolution = resolution)
+  object <- RunUMAP(object, dims = 1:10)
+  return(object)
+}
+```
+
+```{r seurat-gold,results=F,message=F,warning=F,warning=F}
+seurat_gold_default <- run_seurat(gold.data,0.8,find_variable=T) # default resolution is 0.8
+seurat_gold <- run_seurat(gold.data,0.01,find_variable=T)
+```
+
+We evaluate dthe accuracy of results against ground-truth cell labels using three measures: the adjusted rand index, the normalized mutual information, and cluster homogeneity.
+
+
+```{r compare-results-gold, results=T}
+# get ground-truth cell labels
+real_labels <- gsub("_.*","",C@names_cells)
+# get results
+countland_labels <- as.character(C@cluster_labels)
+seurat_default_labels <- as.character(seurat_gold_default@meta.data$seurat_clusters)
+seurat_labels <- as.character(seurat_gold@meta.data$seurat_clusters)
+all_labels <- list(countland_labels,seurat_default_labels,seurat_labels)
+
+rand <- sapply(all_labels,function(x){ARI(real_labels,x)})
+nmi <- sapply(all_labels,function(x){NMI(real_labels,x)})
+homog <- sapply(all_labels,function(x){homogeneity(real_labels,x)})
+
+gold_results <- round(data.frame('adjusted rand index' = rand, 'norm. mutual info.' = nmi, "homogeneity" = homog, check.names=F),3)
+rownames(gold_results) <- c("countland", "Seurat, default resolution=0.8", "Seurat, resolution=0.01")
+kable(t(gold_results),caption="cluster evaluation")
+```
+
+Here we visualize clustering results using spectral embedding, and coloring points according to the ground truth cell labels and the clusters identified with `countland`.
+
+
+```{r colors}
+get_cluster_colors <- function(obj){
+  # get cluster labels
+  real_labels <- gsub("_.*","",obj@names_cells)
+  cl_c <- as.character(obj@cluster_labels)
+
+  # find correspondence between clusters
+  get_cluster_comb_df <- function(cl1,cl2){
+    return(data.frame('source'=cl1,'target'=cl2) %>% group_by(source,target) %>% dplyr::count())
+  }
+  r <- get_cluster_comb_df(real_labels,cl_c)
+  corr <- r %>% group_by(source) %>% arrange(source,desc(n)) %>% slice(1L)
+
+  # assign colors by labels
+  real_colors <- c("dark cyan","orange","dark gray"); names(real_colors) <- corr$source
+  cluster_colors <- real_colors; names(cluster_colors) <- corr$target
+  return(list(real_colors,cluster_colors))
+}
+```
+
+```{r plot-spectral-gold,fig.height=4,fig.width=7,fig.align="center"}
+cols <- get_cluster_colors(C)
+
+u1 <- C@embedding[,2];u2 <- C@embedding[,3]
+gdf <- data.frame("component_1" = u1, "component_2" = u2, "real_label" = real_labels, "countland_clusters" = countland_labels)
+
+g1 <- ggplot(gdf,aes(x = component_1, y = component_2, color = real_label)) + 
+  geom_point(size=1,alpha=0.6,pch=16) + 
+  scale_color_manual(values=cols[[1]]) + 
+  theme("legend.position" = "none") + 
+  ggtitle("ground truth cell labels") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank()) + 
+  xlab("dimension 1") + ylab("dimension 2")
+g2 <- ggplot(gdf,aes(x = component_1, y = component_2, color = countland_clusters)) +
+  geom_point(size=1,alpha=0.6,pch=16) + 
+  scale_color_manual(values=cols[[2]]) + 
+  theme("legend.position" = "none") + 
+  ggtitle("countland, raw counts") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank()) + 
+  xlab("dimension 1") + ylab("dimension 2")
+
+grid.arrange(g1,g2,ncol=2)
+```
+
+```{r save-spectral-gold,include=F}
+pdf("../../figures_and_panels/Gold_spectral_cluster_results.pdf",height=3,width=6)
+grid.arrange(g1,g2,ncol=2)
+dev.off()
+```
+
+We also tested the results of varying the number of components (Laplacian eigenvectors) used in spectral clustering.
+
+```{r components}
+C_3_2 <- Cluster(C,n_clusters=3,n_components=2)
+C_3_3 <- Cluster(C,n_clusters=3,n_components=3)
+C_3_5 <- Cluster(C,n_clusters=3,n_components=5)
+C_3_10 <- Cluster(C,n_clusters=3,n_components=10)
+
+res <- list(C_3_2,C_3_3,C_3_5,C_3_10)
+rand <- sapply(res,function(x){ARI(real_labels,x@cluster_labels)})
+homog <- sapply(res,function(x){homogeneity(real_labels,x@cluster_labels)})
+nmi <- sapply(res,function(x){NMI(real_labels,x@cluster_labels)})
+
+gold_components_results <- round(data.frame('adjusted rand index' = rand, 'norm. mutual info.' = nmi, "homogeneity" = homog, check.names=F),3)
+rownames(gold_components_results) <- c("2 components", "3 components", "5 components", "10 components")
+kable(t(gold_components_results),caption="cluster evaluation")
+```
+
+## Changing the sparsity of the data
+
+The Gold Standard dataset is unlike most scRNA-seq datasets because it has significantly deeper sequencing, meaning the count matrix is far less sparse. To test performance in the face of a larger number of zero values, we created a sparse version of the Gold Standard matrix where each cell has 1\% of the original count depth.
+
+```{r count-zeros}
+# get cell count info
+counts <- C@counts
+n_cells <- length(counts@Dimnames[[2]])
+total_counts <- apply(counts,2,sum)
+min_counts <- min(total_counts)
+
+# calculate how many observations to remove from each cell
+downsample_global <- 0.01
+downsample_factors <- total_counts * downsample_global
+
+# get each cell's observations
+lms <- countland:::listCols(counts)
+lis <- split(counts@i, findInterval(seq_len(Matrix::nnzero(counts)), counts@p, left.open=T))
+
+# set seed
+set.seed(84095)
+
+# calculate new cell vectors with few observations for each
+v <- lapply(seq_len(n_cells),function(x){countland:::SubsampleCol(lms[[x]],lis[[x]],x,downsample_factors[[x]])})
+vd <- do.call(rbind,lapply(v,as.data.frame))
+
+# rebuild the dgC matrix
+vt <- as(counts,"dgTMatrix")
+vt@i <- vd$i
+vt@j <- vd$j
+vt@x <- vd$x
+sparse_gold <- as(vt,"dgCMatrix")
+#library(DropletUtils)
+#write10xCounts("../data/Gold_zeros_032922",sparse_gold,overwrite=TRUE)
+
+# compare fraction of non-zeros
+paste0("original fraction non-zero:",round(Matrix::nnzero(counts)/length(counts),4))
+paste0("new fraction non-zero:",round(Matrix::nnzero(sparse_gold)/length(sparse_gold),4))
+```
+
+First we tested the same number of components and clusters as described above. Here we show that a greater number of components (10) results in better performance than on the less-sparse dataset.
+
+```{r countland-sparse, results=F}
+Z <- countland(sparse_gold)
+Z <- Dot(Z)
+Z <- Embed(Z)
+Z_3_2 <- Cluster(Z,n_clusters=3,n_components=2)
+Z_3_3 <- Cluster(Z,n_clusters=3,n_components=3)
+Z_3_5 <- Cluster(Z,n_clusters=3,n_components=5)
+Z_3_10 <- Cluster(Z,n_clusters=3,n_components=10)
+```
+
+```{r compare-components, results=T}
+real_labels <- gsub("_.*","",Z@names_cells)
+
+res <- list(Z_3_2,Z_3_3,Z_3_5,Z_3_10)
+rand <- sapply(res,function(x){ARI(real_labels,x@cluster_labels)})
+homog <- sapply(res,function(x){homogeneity(real_labels,x@cluster_labels)})
+nmi <- sapply(res,function(x){NMI(real_labels,x@cluster_labels)})
+
+sparse_components_results <- round(data.frame('adjusted rand index' = rand, 'norm. mutual info.' = nmi, "homogeneity" = homog, check.names=F),3)
+rownames(sparse_components_results) <- c("2 components", "3 components", "5 components", "10 components")
+kable(t(sparse_components_results),caption="cluster evaluation with more sparse data")
+```
+
+Then we compared the performance of `countland` and `Seurat` on this more sparse dataset.
+
+```{r seurat-sparse,results=F,message=F,warning=F}
+Z <- countland(sparse_gold)
+Z <- Dot(Z)
+Z <- Embed(Z)
+Z <- Cluster(Z,n_clusters=3,n_components=10)
+
+seurat_sparse <- run_seurat(sparse_gold,0.01,find_variable=T)
+```
+
+```{r compare-sparse, results=T}
+# get results
+countland_labels <- as.character(Z@cluster_labels)
+seurat_labels <- as.character(seurat_sparse@meta.data$seurat_clusters)
+all_labels <- list(countland_labels,seurat_labels)
+
+rand <- sapply(all_labels,function(x){ARI(real_labels,x)})
+nmi <- sapply(all_labels,function(x){NMI(real_labels,x)})
+homog <- sapply(all_labels,function(x){homogeneity(real_labels,x)})
+
+sparse_results <- round(data.frame('adjusted rand index' = rand, 'norm. mutual info.' = nmi, "homogeneity" = homog, check.names=F),3)
+rownames(sparse_results) <- c("countland, raw counts", "Seurat, res. 0.01")
+kable(t(sparse_results),caption="cluster evaluation")
+```
+
+Here we visualize the results.
+
+```{r plot-spectral-sparse,fig.height=4,fig.width=7,fig.align="center"}
+cols <- get_cluster_colors(Z)
+
+u1 <- Z@embedding[,2];u2 <- Z@embedding[,3]
+gdf <- data.frame("component_1" = u1, "component_2" = u2, "real_label" = real_labels, "countland_clusters" = countland_labels)
+
+g1 <- ggplot(gdf,aes(x = component_1, y = component_2, color = real_label)) + 
+  geom_point(size=1,alpha=0.6,pch=16) +
+  scale_color_manual(values=cols[[1]]) + 
+  theme("legend.position" = "none") + 
+  ggtitle("ground truth cell labels") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank())
+g2 <- ggplot(gdf,aes(x = component_1, y = component_2, color = countland_clusters)) +
+  geom_point(size=1,alpha=0.6,pch=16) +
+  scale_color_manual(values=cols[[2]]) + 
+  theme("legend.position" = "none") + 
+  ggtitle("countland: spectral clustering") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank())
+
+grid.arrange(g1,g2,ncol=2)
+```
+
+### Heterogenous sequencing depth
+
+We tested the performance of `countland` and `Seurat` on a dataset that has high heterogeneity of sequencing depths across cells. We created a matrix with these properties by modifying the sparse dataset to restore the original count depth for 100 cells, drawn equally from two of the three cell populations present in this dataset.
+
+
+```{r count-het}
+# build dataset with heterogenous count depth across clusters
+cell_labels <- gsub("_.*","",C@names_cells)
+replacers <- c(sample(which(cell_labels == "HCC827"),50),sample(which(cell_labels == "H1975"),50))
+sparse_gold_het <- sparse_gold[,-replacers]
+sparse_gold_het <- cbind(sparse_gold_het,C@counts[,replacers])
+
+H <- countland(sparse_gold_het) # heterogenous dataset
+#write10xCounts("../data/Gold_zeros_replaced_033122",vcr,overwrite=TRUE)
+```
+
+We tested `countland` first using raw counts, and then using the `subsample` option for cells, which downsamples cells to a standard count depth prior to calculating the dot product and performing spectral clustering. 
+
+We also tested `Seurat`, which normalizes for count depth during data pre-processing.
+
+
+```{r countland-het, results=F, message=F,warning=F}
+# countland, raw counts
+H <- Dot(H,subsample=FALSE)
+H <- Embed(H)
+H <- Cluster(H,n_clusters=3,n_components=10)
+
+# countland, subsampled to standard sequencing depth
+HS <- Subsample(H,cell_counts="min")
+HS <- Dot(HS,subsample=TRUE)
+HS <- Embed(HS)
+HS <- Cluster(HS,n_clusters=3,n_components=10)
+
+# Seurat, normalized
+seurat_het <- run_seurat(sparse_gold_het,resolution=0.01,find_variable=T)
+```
+
+```{r compare-results-het, results=T}
+# get results
+real_labels <- gsub("_.*","",H@names_cells)
+countland_raw_labels <- as.character(H@cluster_labels)
+countland_sub_labels <- as.character(HS@cluster_labels)
+seurat_labels <- as.character(seurat_het@meta.data$seurat_clusters)
+all_labels <- list(countland_raw_labels,countland_sub_labels,seurat_labels)
+
+rand <- sapply(all_labels,function(x){ARI(real_labels,x)})
+nmi <- sapply(all_labels,function(x){NMI(real_labels,x)})
+homog <- sapply(all_labels,function(x){homogeneity(real_labels,x)})
+
+cell_het_results <- round(data.frame('adjusted rand index' = rand, 'norm. mutual info.' = nmi, "homogeneity" = homog, check.names=F),3)
+rownames(cell_het_results) <- c("countland, raw counts", "countland, subsampled cells", "Seurat, res. 0.01")
+kable(t(cell_het_results),caption="cluster evaluation")
+```
+
+```{r plot-spectral-het,fig.height=4,fig.width=10,fig.align="center"}
+cols <- get_cluster_colors(HS)
+
+u1 <- HS@embedding[,2]
+u2 <- HS@embedding[,3]
+gdf <- data.frame("component_1" = u1, "component_2" = u2, "real_label" = real_labels, "countland_clusters" = countland_sub_labels, "total_counts"= apply(HS@counts,2,sum))
+
+g1 <- ggplot(gdf,aes(x = component_1, y = component_2, color = real_label)) + 
+  geom_point(size=1,alpha=0.6,pch=16) + 
+  scale_color_manual(values=cols[[1]]) + 
+  theme("legend.position" = "none") + 
+  ggtitle("ground truth cell labels") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank())
+g2 <- ggplot(gdf,aes(x = component_1, y = component_2, color = countland_clusters)) +
+  geom_point(size=1,alpha=0.6,pch=16) + 
+  scale_color_manual(values=cols[[2]]) + 
+  theme("legend.position" = "none") + 
+  ggtitle("countland: spectral clustering") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank())
+g3 <- ggplot(gdf,aes(x = component_1, y = component_2, color = total_counts)) +
+  geom_point(size=1,alpha=0.6,pch=16) + 
+  scale_color_viridis(option="B") + 
+  #theme("legend.position" = "none") + 
+  ggtitle("total counts") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank())
+
+grid.arrange(g3,g1,g2,ncol=3)
+```
+
+Here we show the results from `Seurat` on the same dataset. Note that despite normalizing for sequencing depth, `Seurat` still recovers distinct clusters that correspond to the cells with differences in total counts.
+
+
+```{r plot-seurat-hetero,fig.height=4,fig.width=9,fig.align="center"}
+sgdf <- data.frame(UMAP1 = seurat_het@reductions$umap@cell.embeddings[,1],UMAP2 =seurat_het@reductions$umap@cell.embeddings[,2], cluster = seurat_het@meta.data$seurat_clusters, total_counts = apply(H@counts,2,sum) )
+g1 <- ggplot(sgdf,aes(x = UMAP1, y = UMAP2, color = cluster)) + 
+  geom_point(size=1,alpha=0.6,pch=16) + 
+  scale_color_manual(values = c("dark gray","dark orange","dark cyan"))
+g2 <- ggplot(sgdf,aes(x = UMAP1, y = UMAP2, color = total_counts)) + 
+  geom_point(size=1,alpha=0.6,pch=16) + scale_color_viridis(option="B")
+grid.arrange(g1,g2,ncol=2)
+```
+
+### Heterogenous gene expression magnitude
+
+We tested the performance of `countland` and `Seurat` on a dataset that has high heterogeneity in total gene expression across cells. We create da matrix with these properties by simulating 10 genes with mean expression 10x larger than the highest observed mean in the sparse Gold standard dataset. These genes have no signal corresponding to cell identity.
+
+```{r count-gene}
+# estimate maximum mean value across genes
+lambda <- max(apply(sparse_gold,1,mean))
+
+# set seed
+set.seed(84095)
+
+# adding one new gene with a lambda 10x larger
+new_10 <- t(replicate(10,rpois(ncol(sparse_gold),lambda*10)))
+rownames(new_10) <- paste0("sim_gene_",seq_len(10))
+sparse_gold_gene10 <- rbind(sparse_gold,new_10)
+
+#library(DropletUtils)
+#write10xCounts("../data/Gold_gene_10x_032922",sparse_gold_gene10,overwrite=TRUE)
+```
+
+We tested `countland` first using raw counts, and then using the `subsample` option for genes, which downsamples genes to a maximum count depth prior to calculating the dot product and performing spectral clustering.
+
+We compared our results to `Seurat`. Here we did not filter the dataset to the most highly variable features, since this may remove the simulated genes.
+
+
+```{r countland-gene, results=F, message=F,warning=F}
+# countland, raw counts
+G <- countland(sparse_gold_gene10)
+G <- Dot(G,subsample=FALSE)
+G <- Embed(G)
+G <- Cluster(G,n_clusters=3,n_components=10)
+
+# countland, gene expression subsampled to a maximum total counts equal to number of cells
+min_total <- min(apply(G@counts,2,sum))
+GS <- Subsample(G,gene_counts=ncol(sparse_gold_gene10))
+GS <- Dot(GS,subsample=TRUE)
+GS <- Embed(GS)
+GS <- Cluster(GS,n_clusters=3,n_components=10)
+
+# Seurat, variance-scaled
+seurat_gene10 <- run_seurat(sparse_gold_gene10,resolution=0.01,find_variable=F)
+```
+
+```{r compare-results-gene, results=T}
+# get results
+real_labels <- gsub("_.*","",G@names_cells)
+countland_raw_labels <- as.character(G@cluster_labels)
+countland_sub_labels <- as.character(GS@cluster_labels)
+seurat_labels <- as.character(seurat_gene10@meta.data$seurat_clusters)
+all_labels <- list(countland_raw_labels,countland_sub_labels,seurat_labels)
+
+rand <- sapply(all_labels,function(x){ARI(real_labels,x)})
+nmi <- sapply(all_labels,function(x){NMI(real_labels,x)})
+homog <- sapply(all_labels,function(x){homogeneity(real_labels,x)})
+
+gene_het_results <- round(data.frame('adjusted rand index' = rand, 'norm. mutual info.' = nmi, "homogeneity" = homog, check.names=F),3)
+rownames(gene_het_results) <- c("countland, raw counts", "countland, subsampled genes", "Seurat, res. 0.01")
+kable(t(gene_het_results),caption="cluster evaluation")
+```
+
+```{r plot-spectral-gene,fig.height=4,fig.width=9,fig.align="center"}
+cols <- get_cluster_colors(GS)
+
+u1 <- GS@embedding[,2]
+u2 <- GS@embedding[,3]
+gdf <- data.frame("component_1" = u1, "component_2" = u2, "real_label" = real_labels, "countland_clusters" = countland_sub_labels)
+
+g1 <- ggplot(gdf,aes(x = component_1, y = component_2, color = real_label)) + 
+  geom_point(size=1,alpha=0.6,pch=16) + 
+  scale_color_manual(values=cols[[1]]) + 
+  theme("legend.position" = "none") + 
+  ggtitle("ground truth cell labels") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank())
+g2 <- ggplot(gdf,aes(x = component_1, y = component_2, color = countland_clusters)) +
+  geom_point(size=1,alpha=0.6,pch=16) + 
+  scale_color_manual(values=cols[[2]]) + 
+  theme("legend.position" = "none") + 
+  ggtitle("countland: spectral clustering") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank())
+
+grid.arrange(g1,g2,ncol=2)
+```
+
+```{r save, include=F}
+
+gold_standard_results <- list(gold_results,gold_components_results,sparse_results,sparse_components_results,cell_het_results,gene_het_results)
+names(gold_standard_results) <- c("Gold standard","Gold, components","Gold, sparse","Gold, sparse components","Gold, cell heterogeneous","Gold, gene heterogenous")
+save(gold_standard_results,file="performance_evaluation_gold_standard_results.RData")
+```

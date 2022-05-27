@@ -1,0 +1,197 @@
+---
+title: "countland and Seurat"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{countland and Seurat}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+### Samuel H. Church
+
+This vignette shows how `countland` can be used to perform the steps of the standard data processing and clustering workflow from `Seurat`, as listed in [this tutorial](https://satijalab.org/seurat/articles/pbmc3k_tutorial.html).
+
+Load the required packages
+
+```{r load,results=F,message=F}
+library(countland)
+library(dplyr)
+library(Seurat)
+library(networkD3)
+library(patchwork)
+library(ggplot2)
+theme_set(theme_classic())
+
+set.seed(84095) # choose a random seed for reproducibility
+```
+
+## Get the data
+
+Here we are using the Gold standard dataset from [Freytag _et al_](10.12688/f1000research.15809.2), here's a look at it before filtering.
+
+```{r seurat-init}
+gold.data <- Seurat::Read10X(data.dir = "../../data/Gold_Freytag2018")
+```
+
+```{r countland-init}
+C <- countland(gold.data,remove_empty=TRUE)
+C@names_genes <- gsub("_","-",C@names_genes) # set names equal to Seurat
+```
+
+## Filter
+
+The `Seurat` tutoral provides instructions on filtering cells, for example cells with more than 200 unique gene observations and genes observed in 3 cells. With `countland` it may not be necessary or helpful to filter the data based on sparsity.
+
+Here, for comparability, we demonstrate how we can filter cells and genes to the same level as `Seurat` using `countland`.
+
+```{r filter}
+gold <- CreateSeuratObject(counts = gold.data, project = "gold3k", min.cells = 3, min.features = 200)
+gold
+
+C <- ScoreCells(C)
+cell_filt <- C@cell_scores[C@cell_scores$n_features >= 200,]$names
+C <- SubsetCells(C,which(C@names_cells %in% cell_filt),remove_empty=FALSE)
+
+C <- ScoreGenes(C,subsample=FALSE)
+gene_filt <- C@gene_scores[C@gene_scores$n_cells >= 3,]$names
+C <- SubsetGenes(C,which(C@names_genes %in% gene_filt),remove_empty=FALSE)
+```
+
+The next step in a `Seurat` workflow is filtering on the fraction of counts from mitochondrial genes, typically less than 5\%. The same can be accomplished with `countland`. 
+
+However, the Gold dataset does not contain gene names that are annotated as mitochondrial. Here we demonstrate how countland can also be used to score genes based on gene annotations, using regular expression matching.
+
+```{r gene-string}
+#check for number of counts from a specific gene, here ending with "271254"
+gene_string <- "271254$"
+
+C <- ScoreCells(C,gene_string)
+head(C@cell_scores)
+```
+
+After filtering, both datasets have `r nrow(C@counts)` genes and `r ncol(C@counts)` cells.
+
+## Detect highly variable features
+
+`Seurat` detects highly variable genes by calculating a form of mean and variance using a dispersion estimate, and then filters the dataset to the top 2,000 genes based on variance.
+
+```{r seurat-var}
+gold <- FindVariableFeatures(gold, selection.method = "vst", nfeatures = 2000)
+```
+
+`countland` calculates several count-based measures of gene expression, including the number of unique count observations, and the count-index, which is the largest number _n_ where there are _n_ cells with more than _n_ counts. To standardize sequencing depth before scoring genes, we can subsample observations per cell to a fixed number.
+
+```{r countland-var}
+C <- Subsample(C,cell_counts=40000)
+C <- ScoreGenes(C,subsample=TRUE)
+head(C@gene_scores)
+```
+
+However, in `countland`, we don't recommend any default filtering scheme based on expression variation. Here, strictly for comparability downstream, we filter the `countland` dataset to the same exact genes as those identified by `Seurat`.
+
+```{r countland-var-filt}
+C <- SubsetGenes(C,which(C@names_genes %in% gold@assays$RNA@var.features))
+```
+
+## Cluster cells
+
+`Seurat` clusters the data by normalizing, rescaling, calculating distances in PC space, and then clustering the neighborhood graph of that distance matrix.
+
+```{r seurat-cluster,results=F,message=F}
+gold <- NormalizeData(gold)
+all.genes <- rownames(gold)
+gold <- ScaleData(gold, features = all.genes)
+gold <- RunPCA(gold, features = VariableFeatures(object = gold), verbose=F)
+gold <- FindNeighbors(gold, dims = 1:10)
+gold <- FindClusters(gold, resolution = 0.05)
+gold <- RunUMAP(gold, dims = 1:10)
+```
+
+`countland` clusters by calculating dot products between cells, and then embedding the graph laplacian of that similarity matrix.
+
+```{r countland-cluster,results=F}
+C <- Dot(C)
+C <- Embed(C)
+C <- Cluster(C,n_clusters=3,n_components=5)
+```
+
+## Visualize results
+
+Here we plot results using the UMAP embedding calculated in `Seurat`.
+
+```{r plot-seurat,fig.height=4,fig.width=9,fig.align="center"}
+cl_s <- paste0("seurat_cluster:",gold@meta.data$seurat_clusters)
+cl_r <- paste0("cell_label:",gold@meta.data$orig.ident)
+cl_c <- paste0("countland_cluster:",as.character(C@cluster_labels))
+values <- unique(c(cl_s,cl_c,cl_r))
+color <- viridis::turbo(n=length(values))
+names(color) <- values
+
+u1 <- gold@reductions$umap@cell.embeddings[,1]
+u2 <- gold@reductions$umap@cell.embeddings[,2]
+gdf <- data.frame("component1" = u1, "component2" = u2, "real_label" = cl_r, "seurat_clusters" = cl_s, "countland_clusters" = cl_c)
+
+g1 <- ggplot(gdf,aes(x = component1, y = component2, color = seurat_clusters)) + geom_point(size=1) + scale_color_manual(values=color) + theme("legend.position" = "none") + ggtitle("Seurat clustering")
+g2 <- ggplot(gdf,aes(x = component1, y = component2, color = countland_clusters)) + geom_point(size=1) + scale_color_manual(values=color) + theme("legend.position" = "none") + ggtitle("countland clustering")
+g3 <- ggplot(gdf,aes(x = component1, y = component2, color = real_label)) + geom_point(size=1) + scale_color_manual(values=color) + theme("legend.position" = "none") + ggtitle("ground truth")
+gridExtra::grid.arrange(g1,g2,g3,ncol=3)
+```
+
+Here we visualize results using the spectral embedding calculated in `countland`.
+
+```{r plot-spectral,fig.height=4,fig.width=9,fig.align="center"}
+u1 <- C@embedding[,2]
+u2 <- C@embedding[,3]
+gdf <- data.frame("component1" = u1, "component2" = u2, "real_label" = cl_r, "seurat_clusters" = cl_s, "countland_clusters" = cl_c)
+
+g1 <- ggplot(gdf,aes(x = component1, y = component2, color = seurat_clusters)) + geom_point(size=1) + scale_color_manual(values=color) + theme("legend.position" = "none") + ggtitle("Seurat clustering")
+g2 <- ggplot(gdf,aes(x = component1, y = component2, color = countland_clusters)) + geom_point(size=1) + scale_color_manual(values=color) + theme("legend.position" = "none") + ggtitle("countland clustering")
+g3 <- ggplot(gdf,aes(x = component1, y = component2, color = real_label)) + geom_point(size=1) + scale_color_manual(values=color) + theme("legend.position" = "none") + ggtitle("ground truth")
+gridExtra::grid.arrange(g1,g2,g3,ncol=3)
+```
+
+Here we visualize the correspondence between the ground truth cell labels and the results from each approach.
+
+```{r sankey-high, fig.height=4,fig.width=4}
+# first we calculate the correspondence between clusters
+get_cluster_comb_df <- function(cl1,cl2){
+  return(data.frame('source'=cl1,'target'=cl2) %>% group_by(source,target) %>% count())
+}
+r1 <- get_cluster_comb_df(cl_r,cl_c)
+r2 <- get_cluster_comb_df(cl_s,cl_r)
+r <- bind_rows(r1,r2)
+
+# A connection data frame is a list of flows with intensity for each flow
+links <- data.frame(
+  source=r$source, 
+  target=r$target, 
+  value=r$n
+  )
+ 
+# From these flows we need to create a node data frame: it lists every entities involved in the flow
+nodes <- data.frame(
+  name=c(as.character(links$source), 
+  as.character(links$target)) %>% unique()
+)
+
+# Here we set up the custom color scheme
+my_color <- 'd3.scaleOrdinal() .domain(["seurat_cluster:0", "seurat_cluster:3", "seurat_cluster:2", "seurat_cluster:1", "countland_cluster:2", "countland_cluster:1", "countland_cluster:3", "cell_label:H2228", "cell_label:H1975", "cell_label:HCC827"]) .range(["#30123BFF",  "#4662D7FF",  "#36AAF9FF",  "#1AE4B6FF",  "#72FE5EFF",  "#C7EF34FF",  "#FABA39FF",  "#F66B19FF",  "#CB2A04FF",  "#7A0403FF"])'
+
+# With networkD3, connection must be provided using id, not using real name like in the links dataframe.. So we need to reformat it.
+links$IDsource <- match(links$source, nodes$name)-1 
+links$IDtarget <- match(links$target, nodes$name)-1
+ 
+# Make the Network
+p_high <- sankeyNetwork(Links = links, Nodes = nodes,
+              Source = "IDsource", Target = "IDtarget",
+              Value = "value", NodeID = "name", 
+              sinksRight=TRUE, colourScale = my_color)
+p_high
+```
