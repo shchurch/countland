@@ -154,8 +154,8 @@ Given the problems inherent to data transformation, Townes _et al_ (2019)[@towne
 # Evaluating count-based approaches to clustering
 
 ```{r source, include=F, cache=F}
-load("performance_evaluation_gold_standard_results.RData")
-load("performance_evaluation_silver_standard_results.RData")
+load("more_vignettes_and_analyses/performance_evaluation_gold_standard_results.RData")
+load("more_vignettes_and_analyses/performance_evaluation_silver_standard_results.RData")
 ```
 
 ## Gold standard
