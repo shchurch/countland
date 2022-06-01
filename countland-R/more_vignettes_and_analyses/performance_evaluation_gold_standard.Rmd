@@ -136,7 +136,7 @@ g2 <- ggplot(gdf,aes(x = component_1, y = component_2, color = countland_cluster
   geom_point(size=1,alpha=0.6,pch=16) + 
   scale_color_manual(values=cols[[2]]) + 
   theme("legend.position" = "none") + 
-  ggtitle("countland, raw counts") + 
+  ggtitle("countland: spectral clustering") + 
   theme(axis.ticks = element_blank(),axis.text = element_blank()) + 
   xlab("dimension 1") + ylab("dimension 2")
 
