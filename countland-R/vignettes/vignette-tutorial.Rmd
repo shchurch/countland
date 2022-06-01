@@ -1,6 +1,6 @@
 ---
 title: "countland: R tutorial"
-output: rmarkdown::html_vignette
+output: rmarkdown::github_document
 vignette: >
   %\VignetteIndexEntry{countland: R tutorial}
   %\VignetteEngine{knitr::rmarkdown}
