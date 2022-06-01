@@ -63,4 +63,4 @@ Construction of vignettes follows https://r-pkgs.org/vignettes.html .
 
 ### Container development
 
-[This](https://hub.docker.com/r/rocker/rstudio) works nicely for developing `countland` R code.
+[This](https://hub.docker.com/r/rocker/tidyverse) works nicely for developing `countland` R code.

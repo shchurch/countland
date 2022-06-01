@@ -36,7 +36,8 @@ We have used the Gold standard dataset provided by [Freytag _et al_ (2018)](10.1
 `countland` accepts an sparse data matrix (as does `Seurat`). 
 
 ```{r data}
-gold.data <- Seurat::Read10X(data.dir = "Gold_Freytag2018/")
+gold_path <- system.file("exdata", "Gold_Freytag2018/", package = "countland", mustWork = TRUE)
+gold.data <- Seurat::Read10X(data.dir = gold_path)
 m <- gold.data
 ```
 
