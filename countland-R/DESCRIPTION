@@ -4,7 +4,21 @@ Version: 0.0.0.9000
 Authors@R: 
     person("Church", "Samuel H.", , "samuelhchurch@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-8451-103X"))
-Description: TBD
+Description: countland includes a set of functions for 
+    applying a restricted linear algebra to the analysis 
+    of count-based data. This tool is specifically designed 
+    to analyze count matrices from single cell RNA 
+    sequencing assays. The tool implement several 
+    count-based approaches for standard steps in scRNA-seq
+    analysis, including scoring genes and cells, comparing
+    cells and clustering, calculating differential 
+    gene expression, and several methods for rank reduction.
+    There are many opportunities for further
+    optimization that may prove useful in the anlaysis of
+    other data. We provide the source code freely
+    available at https://github.com/shchurch/countland
+    and encourage users and developers to fork the code for 
+    their own purposes. 
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
