@@ -16,6 +16,8 @@ knitr::opts_chunk$set(
 
 ### Samuel H. Church
 
+url: https://github.com/shchurch/countland/blob/main/countland-R/vignettes/vignette-tutorial.Rmd
+
 This tutorial demonstrates the major functions of `countland` by applying them to a Gold standard single-cell RNA sequencing dataset from [Freytag _et al_ (2018)](10.12688/f1000research.15809.2).
 
 `countland` is a **barebones** set of functions for applying a restricted linear algebra to the analysis of count-based data. As such, there are many opportunities for further optimization that may prove useful in the anlaysis of your own data. We provide the source code freely available at https://github.com/shchurch/countland and encourage users and developers to fork the code for their own purposes.
@@ -24,9 +26,10 @@ The following packages are required to complete the tutorial
 
 ```{r setup}
 library(countland)
-library(Seurat)
+library(Seurat) # for reading in the data
 library(ggplot2)
 theme_set(theme_classic())
+set.seed(84095) # set random seed for reproducibility
 ```
 
 ## Get the data
@@ -48,6 +51,7 @@ Initialize `countland` by calling the core function on sparse data matrix.
 ```{r init}
 C <- countland(m)
 ```
+
 The count matrix is stored in `C@counts`
 
 ```{r count-matrix}
@@ -58,17 +62,25 @@ Note that most counts are zero for scRNA-seq data.
 
 ## Summarize counts across cells and genes
 
-We can explore our data by checking the total number of counts and other expression measures across cells.
+We can explore our data by checking the total number of counts and other expression measures across genes. These measures include:
 
-Expression measures include: 
-* total counts
-* maximum number of counts observed across genes
-* number of genes with observed counts
-* number of genes with counts above 1, or 10
-* number of unique count values per cell
-* count index = number of _n_ genes ≥_n_ counts
+* The number of cells where each gene was detected.
+* The maximum observed count value per gene.
+* The total number of counts per gene, summed across cells.
+* The number of cells where a gene was detected at a count value larger than 1 or 10.
+* The number of unique count values (e.g. 0, 1, 2). Given the discrete nature of low-magnitude count values, this measure can provide insight into expression variability across cells.
+* The largest number $n$, where there are $n$ cells with $\geq n$ counts for the gene in question. We refer to this measure as the _count index_, and it can be helpful for finding genes that frequently show higher count values, as compared to genes that are mostly detected at values of 1 or 2, with a few high-count exceptions.
 
-It can be helpful to see how many counts are derived from certain genes, such as mitochondrial genes (here we have chosen a gene name with particularly high counts, regular expressions are permitted for name matching).
+
+```{r gene-score}
+# calculate expression scores across genes
+C <- ScoreGenes(C)
+head(C@gene_scores)
+```
+
+We can also calculate the same measures, but across cells. 
+
+It can be helpful to see how many counts are derived from certain genes, such as mitochondrial genes. Here we chose a gene at random, its counts are listed under `feature_match_counts`. Regular expressions are permitted for name matching.
 
 ```{r cell-score}
 # sum counts from genes matching this regex expression
@@ -79,91 +91,94 @@ C <- ScoreCells(C,gene_string)
 head(C@cell_scores)
 ```
 
-We can also calculate the same meaures, but across cells.
-
-```{r gene-score}
-# calculate expression scores across genes
-C <- ScoreGenes(C)
-head(C@gene_scores)
-```
-
 ## Cluster cells by similarity
 
-The dot (or inner) product is a measure of similarity between vectors. In this case, it tells us how similar two cells are based on the distribution of transcript counts, and scaled by the total counts per cell. A dot product of 0 indicates orthogonal cell vectors (no shared counts), larger values indicate aligned cell vectors.
+In our count-based approach, we compare cell transcriptomes by calculating the dot product of untransformed counts between all pairwise combinations of cells. This process generates a similarity matrix (rather than a distance matrix, as typically used in scRNA workflows).
 
 ```{r dots}
 C <- Dot(C)
+# preview the resulting similarity matrix
+C@dots[1:5,1:5]
 ```
-    
-Cell populations can be compared and distinguished by embedding and clustering the matrix of pairwise dot products (contained in `C.dots`). This matrix is an unbounded affinity matrix. It is symmetric, and contains only integer values above 0. Spectral embedding clustering is appropriate for this type of matrix.
-
-First, we embed to investigate the optimal number of clusters for our data.
+   
+Cell similarity can then be analyzed by applying spectral embedding to this dot product similarity matrix. Spectral embedding involves calculating the graph Laplacian of the matrix and then estimating the eigenvectors and eigenvalues of this graph. 
 
 ```{r embed}
 C <- Embed(C)
 ```
 
-The eigengap heuristic is can help decide the optimal number of clusters, but it is only a guideline. According to this heuristic, the optimal number of clusters is _k_ where the difference in eigenvalues $ | e_{k+1} - e_{k} | $ is largest.
+This matrix can also be used to cluster cells by applying a k-means algorithm to the eigenvector matrix (spectral clustering). In order to determine the optimal number of clusters, it can be helpful to apply an eigengap heuristic. This can help decide the optimal number of clusters, but it is only a guideline. According to this heuristic, the optimal number of clusters is _k_ where the difference in eigenvalues $| e_{k+1} - e_{k} |$ is largest.
 
-
-```{r eigengap}
+```{r eigengap,fig.width=4,fig.height=3}
 PlotEigengap(C)
 ```
 
-For many datasets, you may want to consider other factors, e.g. choosing a minimum number of clusters, whether or not the eigengap reflects this.
+Here we see big jumps between 1 and 2, and a smaller gap between 2 and 3. For many datasets, you may want to consider other factors, e.g. choosing a minimum number of clusters, whether or not the eigengap reflects this.
 
-Here we have chosen 3 as the optimal number of clusters.
+Here we have chosen 3 as the optimal number of clusters, given our prior knowledge about this benchmark dataset.
 
 ```{r cluster}
 C <- Cluster(C,n_clusters=3)
 ```
 
-We can now visualize clusters using spectral embedding.
+The clustering results are stored in `C@clusters`. The cell similarity matrix can be visualized in two dimensions by plotting points using two eigenvectors.
 
 ```{r plot-cluster,fig.width=6}
 PlotEmbedding(C)
 ```
 
+As we see, cells fall into three clusters which separate along the first two dimensions.
+
 ## Subsampling data
 
-Cells are not sequenced to standard sequencing depth. This is sometimes a problem for downstream comparisons, but not always.
+It's not always necessary to standardize sequencing depth across cells in order to make useful comparisons. However there are certain comparisons where we might expect differences in sequencing depth to obscure biological differences, for example, when calculating differential gene expression across cells. 
 
-You can create an alternative count matrix where cells have an equal number of counts using the function `Subsample()`. To subsample to the minimum number of total counts across cells, use `cell_counts='min'`, otherwise the number of counts must be larger than the minimum value.
+One method of standardizing sequencing depth is to subsample counts to an equivalent number for all cells. Since the scRNA-seq counting process stops at an arbitrary point, we can randomly subsample from our observations per cell to stop the process at a specific number of our choosing.
 
-This matrix is stored in `C@subsample`
+Here we do this with the function `Subsample()`. To subsample to the minimum number of total counts across cells, use `cell_counts='min'`, otherwise use a number of counts larger than the minimum value.
 
 ```{r subsample-cells}
 C <- Subsample(C,cell_counts='min')
+# preview the resulting subsampled count matrix
+C@subsample[1:10,1:10]
 ```
 
-Similarly, there is often substantial heterogeneity in the magnitude of expression across genes. This may result in highly expressed genes having an outsized impact on results.
+There are also cases where we might expect differences in the magnitude of expression across genes to obscure biological variation. The dot product is calculated by summing the product of each gene, meaning genes with substantially larger count values will contribute more to the dot product than genes with smaller values. This feature of the dot product can be useful for emphasizing genes with the largest dynamic range of counts, given that expression variance scales with magnitude. But when highly expressed genes do not contain informative biological signal, this variance might drown out signal from genes with lower expression magnitudes.
 
-You can create an alternate count matrix where gene expression is bounded at a maximum total counts across cells, use `Subsample(gene_counts=[maximum]`. An example maximum value might be equal to 10x the number of cells (columns in the count matrix). 
+A count-based approach for tuning down the signal of highly expressed genes is to limit their total counts by randomly subsampling observations per gene. We can accomplish this by establishing a threshold for total counts and subsampling that number of observations from any gene vector that exceeds that threshold.
+
+Here we do this with the function `Subsample(gene_counts=[maximum])`. An example maximum value might be equal to 10x the number of cells (columns in the count matrix).
 
 ```{r subsample-genes}
 C <- Subsample(C,gene_counts=10*ncol(C@counts)) # doing so will overwrite our previous subsampled matrix 
 
-# to subsample both genes and cells, use gene_counts and cell_counts in the same function. Genes will be subsampled first.
+# To subsample both genes and cells, use gene_counts and cell_counts in the same function. 
+# Genes will be subsampled first.
 
 #C <- Subsample(C,gene_counts=10*ncol(C@counts),cell_counts='min')
 ```
 
 ## Subsetting data
 
-You can filter the count matrix to only certain cells and genes using `SubsetCells()` and `SubsetGenes()`.
+An alternative approach to subsampling is to focus on only subsets of genes or cells when making comparisons. Here we filter the count matrix to only certain cells and genes using `SubsetCells()` and `SubsetGenes()`.
+
+With `countland`, such data filtering may not be necessary or helpful, so we don't recommend any filtering scheme by default.
 
 ```{r filt-cell}
+# cells with fewer than 8,500 unique features
 filter_cell_names <- C@cell_scores[C@cell_scores$n_features < 8500,]$names
-filter_cell_index <- which(C@names_cells %in% filter_cell_names) # cells with fewer than 8,500 unique features
+filter_cell_index <- which(C@names_cells %in% filter_cell_names) 
 C <- SubsetCells(C,filter_cell_index,remove_empty=FALSE)
 ```
 
 ```{r filt-gene}
+# cells with greater than 100 observations
 filter_gene_names <- C@gene_scores[C@gene_scores$n_cells > 100,]$names
-filter_gene_index <- which(C@names_genes %in% filter_gene_names) # cells with greater than 100 observations
+filter_gene_index <- which(C@names_genes %in% filter_gene_names) 
 C <- SubsetGenes(C,filter_gene_index,remove_empty=FALSE)
 ```
-With `countland`, such data filtering may not be necessary or helpful. The original count matrix can be restored at any time.
+
+The original count matrix can be restored at any time.
 
 ```{r restore}
 C <- RestoreCounts(C)
@@ -171,7 +186,9 @@ C <- RestoreCounts(C)
 
 ## Identify marker genes
 
-What makes a gene an ideal marker for a cluster may depend on downstream applications. For example, the ideal marker gene might be defined as the gene detected in all cells in a given cluster and none of the rest. Under this definition, the top marker gene for each cluster can be identified by counting and comparing the number of non-zero cells.
+The ideal marker gene for a cluster of cells can be definedas the gene that is most specifically expressed in cluster cells, or as the gene with the highest differential expression between cells in the cluster and all other cells.
+
+A count-based approach for identifying marker genes by specificity is to count the number of cells with non-zero observations for each gene, and then calculating the difference between the fraction of these cells in a cluster versus the fraction that are not (here with `method='prop-zero'`). The ideal marker gene would return a value of one, indicating it was expressed in all cluster cells and no others.
 
 ```{r marker-zero}
 C <- RankMarkerGenes(C,method='prop-zero',subsample=F)
@@ -185,9 +202,11 @@ gene_index = which(C@names_genes == cluster_top)
 PlotMarker(C,gene_index)
 ```
 
-Alternatively, the top marker genes for each cluster can be identified by ranking genes according to differential gene expression, calculated using the Wilcoxon rank-sum statistic.
+This plot shows the counts for the top marker gene, defined by specificity, for cluster 1.
 
-When calculating differential gene expression, it typically makes sense to subsample cells to a standard sequencing depth.
+Alternatively we can defined the top marker gene by differential expression (here with `method='rank-sums'`). This is assessed using rank-sums tests. Counts for a given gene are ranked between cluster and non-cluster cells, the ranks for each group are summed, and a test statistic is calculated. This statistic is used to test the hypothesis that observations from cluster cells are larger than those from non-cluster cells.
+
+Because heterogeneity in count depth can influence the magnitude of expression for individual gene, subsampling to a standard sequencing depth prior to calculating differential gene expression is recommended.
 
 ```{r marker-ranks}
 C <- Subsample(C,cell_counts='min')
@@ -201,4 +220,6 @@ cluster_top <- cluster_marker[cluster_marker$rank == 1,]$names
 gene_index = which(C@names_genes == cluster_top)
 PlotMarker(C,gene_index)
 ```
+
+This plot shows the counts for the top marker gene, defined by differential gene expression, for cluster 1.
 
