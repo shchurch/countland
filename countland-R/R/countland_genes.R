@@ -161,13 +161,14 @@ ScoreGenes <- function(C,subsample=FALSE){
 #'
 #' @param C countland object
 #' @param gene_indices vector of gene index values
+#' @param colors color palette for ggplot2, default=palette of 11 colors
 #'
 #' @export
-PlotGeneCounts <- function(C,gene_indices){
+PlotGeneCounts <- function(C,gene_indices,colors=color_palette){
     counts <- t(as(C@counts[gene_indices,],"matrix"))
     new_counts <- do.call(rbind,lapply(seq_len(ncol(counts)),function(x){data.frame("name" = colnames(counts)[x], "counts" = counts[,x])}))
     if(length(gene_indices) < 10){
-        pal <- color_palette[1:length(gene_indices)]
+        pal <- colors[1:length(gene_indices)]
     } else {
         pal <- rep("black",length(gene_indices))
     }

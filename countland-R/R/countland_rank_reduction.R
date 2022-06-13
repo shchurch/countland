@@ -40,9 +40,10 @@ RunIMA <- function(C,features,u_bounds,l_bounds=c(0,0),maxiter=1000000,stop_crit
 #' @param x feature on x-axis, integer (default=1)
 #' @param y feature on y-axis, integer (default=2)
 #' @param subsample if TRUE, use subsampled counts (default), otherwise use counts
+#' @param colors color palette for ggplot2, default=palette of 11 colors
 #'
 #' @export
-PlotIMA <- function(C,x = 1, y = 2,subsample=TRUE){
+PlotIMA <- function(C,x = 1, y = 2, colors=color_palette, subsample=TRUE){
 	if(subsample==FALSE){
         sg <- as(Matrix::t(C@counts),"matrix")
     } else {
@@ -58,7 +59,7 @@ PlotIMA <- function(C,x = 1, y = 2,subsample=TRUE){
     ld <- setNames(data.frame(loading[,x],loading[,y],C@cluster_labels),c("f1","f2","cluster"))
     ggplot(ld,aes(x = .data$f1, y = .data$f2, color = as.character(.data$cluster))) +
     geom_point(size=1) +
-    scale_color_manual(values = color_palette) +
+    scale_color_manual(values = colors) +
     xlab(paste("feature: ",x,sep="")) +
     ylab(paste("feature: ",y,sep="")) +
     theme(legend.position = "None")
@@ -144,15 +145,16 @@ SharedCounts <- function(C,n_clusters,n_cells=100,subsample=T){
 #' @param C countland object
 #' @param x gene cluster to plot on x-axis, integer (default=1)
 #' @param y gene cluster to plot on y-axis, integer (default=2)
+#' @param colors color palette for ggplot2, default=palette of 11 colors
 #'
 #' @export
-PlotSharedCounts <- function(C,x = 1, y = 2){
+PlotSharedCounts <- function(C,x = 1, y = 2,colors=color_palette){
     loading <- C@sum_sharedcounts
 
     ld <- setNames(data.frame(loading[x,],loading[y,],C@cluster_labels),c("f1","f2","cluster"))
     ggplot(ld,aes(x = .data$f1, y = .data$f2, color = as.character(.data$cluster))) +
     geom_point(size=1) +
-    scale_color_manual(values = color_palette) +
+    scale_color_manual(values = colors) +
     xlab(paste("feature: ",x,sep="")) +
     ylab(paste("feature: ",y,sep="")) +
     theme(legend.position = "None")

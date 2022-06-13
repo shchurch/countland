@@ -4,7 +4,7 @@
 \alias{PlotSharedCounts}
 \title{Plot cells using matrix of counts summed by clusters of genes.}
 \usage{
-PlotSharedCounts(C, x = 1, y = 2)
+PlotSharedCounts(C, x = 1, y = 2, colors = color_palette)
 }
 \arguments{
 \item{C}{countland object}
@@ -12,6 +12,8 @@ PlotSharedCounts(C, x = 1, y = 2)
 \item{x}{gene cluster to plot on x-axis, integer (default=1)}
 
 \item{y}{gene cluster to plot on y-axis, integer (default=2)}
+
+\item{colors}{color palette for ggplot2, default=palette of 11 colors}
 }
 \description{
 Plot cells using matrix of counts summed by clusters of genes.

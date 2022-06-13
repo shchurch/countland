@@ -195,7 +195,7 @@ C <- RankMarkerGenes(C,method='prop-zero',subsample=F)
 C@marker_genes[(C@marker_genes$cluster_label == 1),]
 ```
 
-```{r plot-marker-zero,fig.width=6}
+```{r plot-marker-zero,fig.width=12}
 cluster_marker <- C@marker_genes[C@marker_genes$cluster_label == 1,]
 cluster_top <- cluster_marker[cluster_marker$rank == 1,]$names
 gene_index = which(C@names_genes == cluster_top)
@@ -214,7 +214,7 @@ C <- RankMarkerGenes(C,method='rank-sums',subsample=T)
 C@marker_genes[(C@marker_genes$cluster_label == 1),]
 ```
 
-```{r plot-marker-ranks,fig.width=6}
+```{r plot-marker-ranks,fig.width=12}
 cluster_marker <- C@marker_genes[C@marker_genes$cluster_label == 1,]
 cluster_top <- cluster_marker[cluster_marker$rank == 1,]$names
 gene_index = which(C@names_genes == cluster_top)

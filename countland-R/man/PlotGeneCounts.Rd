@@ -4,12 +4,14 @@
 \alias{PlotGeneCounts}
 \title{Generate a strip plot for counts across selected genes}
 \usage{
-PlotGeneCounts(C, gene_indices)
+PlotGeneCounts(C, gene_indices, colors = color_palette)
 }
 \arguments{
 \item{C}{countland object}
 
 \item{gene_indices}{vector of gene index values}
+
+\item{colors}{color palette for ggplot2, default=palette of 11 colors}
 }
 \description{
 Generate a strip plot for counts across selected genes

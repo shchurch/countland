@@ -4,7 +4,7 @@
 \alias{PlotIMA}
 \title{Plot cells using integer matrix approximation}
 \usage{
-PlotIMA(C, x = 1, y = 2, subsample = TRUE)
+PlotIMA(C, x = 1, y = 2, colors = color_palette, subsample = TRUE)
 }
 \arguments{
 \item{C}{countland object}
@@ -12,6 +12,8 @@ PlotIMA(C, x = 1, y = 2, subsample = TRUE)
 \item{x}{feature on x-axis, integer (default=1)}
 
 \item{y}{feature on y-axis, integer (default=2)}
+
+\item{colors}{color palette for ggplot2, default=palette of 11 colors}
 
 \item{subsample}{if TRUE, use subsampled counts (default), otherwise use counts}
 }

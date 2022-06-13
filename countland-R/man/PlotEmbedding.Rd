@@ -4,10 +4,12 @@
 \alias{PlotEmbedding}
 \title{Plot cells using spectral embedding of dot products.}
 \usage{
-PlotEmbedding(C)
+PlotEmbedding(C, colors = color_palette)
 }
 \arguments{
 \item{C}{countland object}
+
+\item{colors}{color palette for ggplot2, default=palette of 11 colors}
 }
 \description{
 Plot cells using spectral embedding of dot products.

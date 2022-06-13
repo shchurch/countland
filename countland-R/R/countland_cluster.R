@@ -151,9 +151,10 @@ Cluster <- function(C,n_clusters,n_components=NULL){
 #' Plot cells using spectral embedding of dot products.
 #'
 #' @param C countland object
+#' @param colors color palette for ggplot2, default=palette of 11 colors
 #'
 #' @export
-PlotEmbedding <- function(C){
+PlotEmbedding <- function(C,colors=color_palette){
 
   stopifnot("embedding missing; run Embed() first"= length(C@embedding) > 0)
 
@@ -163,7 +164,7 @@ PlotEmbedding <- function(C){
 	ggplot2::ggplot(embed,aes(x = .data$component_1,y = .data$component_2, color=as.character(C@cluster_labels))) +
 	geom_point(size=1) +
 	guides(color=guide_legend(title="cluster")) +
-	scale_color_manual(values=color_palette)
+	scale_color_manual(values=colors)
 }
 
 #' Rank the top marker genes for each cluster from spectral clustering.
@@ -225,19 +226,23 @@ RankMarkerGenes <- function(C,method='prop-zero',subsample=FALSE){
 #'
 #' @param C countland object
 #' @param gene_index index value for gene to visualize
+#' @param colors color palette for ggplot2, default=palette of 11 colors
 #'
 #' @export
-PlotMarker <- function(C,gene_index){
+PlotMarker <- function(C,gene_index,colors=color_palette){
 
   embed <- C@embedding[,2:3]
   embed <- setNames(data.frame(embed),paste("component_",seq_len(2),sep=""))
   embed$counts <- C@counts[gene_index,]
 
-  ggplot(embed[embed$counts != 0,],aes(x = .data$component_1,y = .data$component_2, color=.data$counts)) +
+  g1 <- ggplot2::ggplot(embed,aes(x = .data$component_1,y = .data$component_2, color=as.character(C@cluster_labels))) +
+    geom_point(size=1) +
+    guides(color=guide_legend(title="cluster")) +
+    scale_color_manual(values=colors)
+  g2 <- ggplot2::ggplot(embed[embed$counts != 0,],aes(x = .data$component_1,y = .data$component_2, color=.data$counts)) +
     geom_point(data = embed[embed$counts == 0,],size=0.5,color="gray") +
     geom_point(size=1) +
     guides(color=guide_legend(title="marker gene counts")) +
     viridis::scale_color_viridis()
-
-  # total counts
+  gridExtra::grid.arrange(g1,g2,ncol=2)
 }

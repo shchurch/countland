@@ -4,12 +4,14 @@
 \alias{PlotMarker}
 \title{Plot cell using spectral embedding and display counts in a given gene.}
 \usage{
-PlotMarker(C, gene_index)
+PlotMarker(C, gene_index, colors = color_palette)
 }
 \arguments{
 \item{C}{countland object}
 
 \item{gene_index}{index value for gene to visualize}
+
+\item{colors}{color palette for ggplot2, default=palette of 11 colors}
 }
 \description{
 Plot cell using spectral embedding and display counts in a given gene.
