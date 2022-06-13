@@ -607,9 +607,15 @@ class countland:
         self.cluster_labels = spectral.labels_
         logging.info("    done.")
 
-    def PlotEmbedding(self):
+    def PlotEmbedding(self, colors="tab10"):
         """
         Plot cells using spectral embedding of dot products. Clustering results and total counts are displayed
+        ...
+
+        Parameters
+        ----------
+        colors: str or array
+            seaborn color palette, default="tab10"
         """
 
         assert hasattr(
@@ -619,34 +625,21 @@ class countland:
             self, "cluster_labels"
         ), "expecting cluster labels from spectral clustering, use Cluster() to calculate"
 
-        fig, axes = plt.subplots(ncols=2, nrows=1, figsize=(8, 4))
+        fig, axes = plt.subplots(ncols=1, nrows=1, figsize=(4, 4))
 
         sns.scatterplot(
-            ax=axes[0],
+            ax=axes,
             x=self.embedding[:, 1],
             y=self.embedding[:, 2],
             hue=self.cluster_labels,
             s=10,
-            palette="tab10",
+            palette=colors,
             linewidth=0,
         )
-        axes[0].legend(loc=(1.04, 0))
-        axes[0].xaxis.set_ticklabels([])
-        axes[0].yaxis.set_ticklabels([])
-        axes[0].set(title="clusters")
-        sns.scatterplot(
-            ax=axes[1],
-            x=self.embedding[:, 1],
-            y=self.embedding[:, 2],
-            hue=np.sum(self.counts, axis=1),
-            s=10,
-            palette="viridis",
-            linewidth=0,
-        )
-        axes[1].legend(loc=(1.04, 0))
-        axes[1].xaxis.set_ticklabels([])
-        axes[1].yaxis.set_ticklabels([])
-        axes[1].set(title="total counts")
+        axes.legend(loc=(1.04, 0))
+        axes.xaxis.set_ticklabels([])
+        axes.yaxis.set_ticklabels([])
+        axes.set(title="clusters")
 
         fig.tight_layout()
         return self
@@ -733,7 +726,7 @@ class countland:
         self.marker_full = rank_dfs
         self.marker_genes = top
 
-    def PlotMarker(self, gene_index):
+    def PlotMarker(self, gene_index, colors="tab10"):
         """
         Plot cells using spectral embedding and display counts in a given gene
         ...
@@ -742,6 +735,8 @@ class countland:
         ----------
         gene_index: int
             index value of gene to be displayed
+        colors: str or array
+            seaborn color palette, default="tab10"
         """
         marker_counts = self.counts[:, gene_index].ravel()
 
@@ -755,7 +750,7 @@ class countland:
             x=self.embedding[:, 1],
             y=self.embedding[:, 2],
             hue=self.cluster_labels,
-            palette="tab10",
+            palette=colors,
             s=10,
             linewidth=0,
         )
@@ -885,7 +880,7 @@ class countland:
         self.matrixLambda = np.diag(Lambda_)
         logging.info("    done.")
 
-    def PlotIMA(self, x=0, y=1, subsample=True):
+    def PlotIMA(self, x=0, y=1, subsample=True, colors="tab10"):
         """
         Plot cells using integer matrix approximation
         ...
@@ -899,7 +894,8 @@ class countland:
         subsample: bool
             if true (default), use the matrix of subsampled counts
             otherwise, score counts using the unsampled count matrix
-
+        colors: str or array
+            seaborn color palette, default="tab10"
         """
 
         if subsample is False:
@@ -919,7 +915,7 @@ class countland:
             x=loading[:, x],
             y=loading[:, y],
             hue=self.cluster_labels,
-            palette="tab10",
+            palette=colors,
             s=5,
             linewidth=0,
         )
@@ -997,7 +993,7 @@ class countland:
         self.sum_sharedcounts_all = np.column_stack((self.sum_sharedcounts, restX))
         logging.info("    done.")
 
-    def PlotSharedCounts(self, x=0, y=1):
+    def PlotSharedCounts(self, x=0, y=1, colors="tab10"):
         """
         Plot cells using matrix of counts summed by clusters of genes
         ...
@@ -1008,7 +1004,8 @@ class countland:
            gene cluster to plot on x-axis
         y: int
            gene cluster to plot on y-axis
-
+        colors: str or array
+            seaborn color palette, default="tab10"
         """
 
         loading = self.sum_sharedcounts
@@ -1020,7 +1017,7 @@ class countland:
             x=loading[:, x],
             y=loading[:, y],
             hue=self.cluster_labels,
-            palette="tab10",
+            palette=colors,
             s=5,
             linewidth=0,
         )
