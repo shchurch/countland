@@ -2,7 +2,7 @@
 % Please edit documentation in R/countland.R
 \name{countland}
 \alias{countland}
-\title{Initialize a countland object}
+\title{Initialize a countland object from a dgCMatrix}
 \usage{
 countland(m, remove_empty = TRUE, verbose = TRUE)
 }
@@ -17,7 +17,7 @@ countland(m, remove_empty = TRUE, verbose = TRUE)
 countland object
 }
 \description{
-Initialize a countland object
+Initialize a countland object from a dgCMatrix
 }
 \examples{
 m <- matrix(sample(seq(0,4),prob=c(0.95,0.3,0.1,0.05,0.05),2000,replace=TRUE),ncol=50)

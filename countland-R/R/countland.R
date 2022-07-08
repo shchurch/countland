@@ -64,7 +64,7 @@ setClass("countland", slots=list(counts="dgCMatrix",
                                  centered_counts="dgCMatrix")
 )
 
-#' Initialize a countland object
+#' Initialize a countland object from a dgCMatrix
 #'
 #' @param m A matrix of counts (dense or sparse)
 #' @param remove_empty filter out cells and genes with no observed counts (default=TRUE)
@@ -95,7 +95,7 @@ countland <- function(m,remove_empty=TRUE,verbose=TRUE){
     print(paste0("the count matrix has ",nrow(C@counts)," genes (rows)"))
     print(paste0("    and ",ncol(C@counts)," cells (columns)"))
     print(paste0("the fraction of entries that are nonzero is ",
-                 round(Matrix::nnzero(C@counts)/length(C@counts),4)))
+        round(Matrix::nnzero(C@counts)/length(C@counts),4)))
 
     C@raw_counts <- C@counts
     C@raw_names_genes <- C@names_genes
@@ -114,22 +114,6 @@ LogGeneNumber <- function(C){
     print(paste0("new number of cells: ",ncol(C@counts)))
 }
 
-#' Restore count matrix to original state
-#'
-#' @param C countland object
-#'
-#' @return countland object
-#' @export
-RestoreCounts <- function(C){
-
-    C@counts <- C@raw_counts
-    C@names_genes <- C@counts@Dimnames[[1]]
-    C@names_cells <- C@counts@Dimnames[[2]]
-    LogGeneNumber(C)
-
-    return(C)
-}
-
 #' Internal function to remove empty columns and rows
 #'
 #' @param C  countland object
@@ -145,90 +129,6 @@ RemoveEmpty <- function(C){
     C@counts <- C@counts[,cell_indices]
     C@names_cells <- C@names_cells[cell_indices]
     print("after removing empty cells and genes,")
-
-    return(C)
-}
-
-#' Subsets genes using a vector of gene indices
-#'
-#' @param C  countland object
-#' @param gene_indices vector of gene index values
-#' @param remove_empty filter out cells and genes with no observed counts (default=TRUE)
-#'
-#' @return countland object, count matrix updated
-#' @export
-SubsetGenes <- function(C,gene_indices,remove_empty=TRUE){
-    C@counts <- C@counts[gene_indices,]
-    C@names_genes <- C@names_genes[gene_indices]
-
-    if(remove_empty==TRUE){
-        print("after subsetting and removing empty cells and genes,")
-        C <- RemoveEmpty(C)
-        LogGeneNumber(C)
-    } else {
-        LogGeneNumber(C)
-    }
-
-    return(C)
-}
-
-#' Subsets cells using a vecvtor of cell indices
-#'
-#' @param C countland object
-#' @param cell_indices vector of cell index values
-#' @param remove_empty filter out cells and genes with no observed counts (default=TRUE)
-#'
-#' @return countland object, count matrix updated
-#' @export
-SubsetCells <- function(C,cell_indices,remove_empty=TRUE){
-    C@counts <- C@counts[,cell_indices]
-    C@names_cells <- C@names_cells[cell_indices]
-    if(remove_empty==TRUE){
-        print("after subsetting and removing empty cells and genes,")
-        C <- RemoveEmpty(C)
-        LogGeneNumber(C)
-    } else {
-        LogGeneNumber(C)
-    }
-
-    return(C)
-}
-
-#' Calculate several scores for counts across cells
-#'
-#' @param C countland object
-#' @param gene_string string with regular expression expression matching gene names of interest (default=NULL)
-#'
-#' @return countland object with slot cell_scores
-#' @export
-ScoreCells <- function(C,gene_string=NULL){
-    cts <- C@counts
-
-    fulldf <- setNames(data.frame(C@names_cells,diff(cts@p)),c("names","n_features"))
-
-    cts_cols <- listCols(cts)
-    mx <- vapply(cts_cols,max,1)
-    df <- setNames(data.frame(C@names_cells[as.numeric(names(mx))]),"names")
-    df$max_count_value <- mx
-    df$total_counts <- vapply(cts_cols,sum,1)
-    df$n_features_above1 <- vapply(cts_cols,function(x){sum(x>1)},1)
-    df$n_features_above10 <- vapply(cts_cols,function(x){sum(x>10)},1)
-    df$unique_count_values <- vapply(cts_cols,function(x){length(unique(x))},1)
-    df$count_index <- vapply(cts_cols,CountIndex,1)
-
-    if(!is.null(gene_string)){
-        gene_string_match <- grep(gene_string,C@names_genes)
-        if(length(gene_string_match) == 1){
-          df$feature_match_counts <- C@counts[gene_string_match,]
-        } else {
-          df$feature_match_counts <- apply(C@counts[gene_string_match,],2,sum)
-        }
-    }
-
-    cell_scores <- merge(fulldf,df,by="names",all.x=T)
-    cell_scores[is.na(cell_scores)] <- 0
-
-    C@cell_scores <- cell_scores
 
     return(C)
 }
