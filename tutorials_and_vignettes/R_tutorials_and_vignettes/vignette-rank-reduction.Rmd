@@ -1,6 +1,6 @@
 ---
 title: "countland: rank reduction and data visualization"
-output: rmarkdown::html_vignette
+output: rmarkdown::github_document
 vignette: >
   %\VignetteIndexEntry{countland: rank reduction and data visualization}
   %\VignetteEngine{knitr::rmarkdown}
@@ -28,7 +28,7 @@ This vignette demonstrates several methods for approximating a lower rank versio
 Here we implement the `countland` clustering workflow on the Gold Standard dataset from [Freytag _et al_ (2018)](10.12688/f1000research.15809.2).
 
 ```{r data}
-gold.data <- Seurat::Read10X(data.dir = "../../data/Gold_Freytag2018/")
+gold.data <- Seurat::Read10X(data.dir = "../data/Gold_Freytag2018/")
 set.seed(84095)
 
 C <- countland(gold.data)
@@ -108,9 +108,9 @@ Because the components of this dimensional reduction are groups of genes, it can
 
 ```{r plot-shared,fig.width=6,fig.height=6}
 s1 <- PlotSharedCounts(S,x = 1, y = 2)
-s2 <- PlotSharedCounts(S,x = 3, y = 2)
-s3 <- PlotSharedCounts(S,x = 1, y = 4)
-s4 <- PlotSharedCounts(S,x = 2, y = 4)
+s2 <- PlotSharedCounts(S,x = 2, y = 4)
+s3 <- PlotSharedCounts(S,x = 3, y = 5)
+s4 <- PlotSharedCounts(S,x = 4, y = 7)
 gridExtra::grid.arrange(s1,s2,s3,s4,ncol=2)
 ```
 
@@ -170,7 +170,7 @@ library(tidyr)
 df_glmpca <- setNames(res$factors,c("embedding_1","embedding_2"))
 df_seurat <- setNames(data.frame(gold@reductions$umap@cell.embeddings),c("embedding_1","embedding_2"))
 df_spectral <- setNames(data.frame(C@embedding[,2:3]),c("embedding_1","embedding_2"))  * 10000000
-df_shared <- setNames(data.frame(Matrix::t(S@sum_sharedcounts[2:3,])),c("embedding_1","embedding_2")) / 100
+df_shared <- setNames(data.frame(Matrix::t(S@sum_sharedcounts[c(2,4),])),c("embedding_1","embedding_2")) / 100
 
 sg <- as(Matrix::t(I@subsample),"matrix")
 loading <- sg %*% (I@matrixV %*% I@matrixLambda)
@@ -235,7 +235,7 @@ gridExtra::grid.arrange(g1,g2,g3,g4,g5,ncol=3)
 ```
 
 ```{r save-comparison,include=F}
-pdf(file="../../figures_and_panels/Gold_embedding_comparison.pdf",height=5,width=8)
+pdf(file="Gold_embedding_comparison.pdf",height=5,width=8)
 gridExtra::grid.arrange(g1,g2,g3,g4,g5,ncol=3)
 dev.off()
 ```
@@ -255,5 +255,5 @@ sg1 <- ggplot(data = all_embeddings, aes(x = embedding_1, y = embedding_2, color
   guides(color=guide_legend(title="cell label")) +
   labs(title = 'embedding: {closest_state}')
 
-anim_save("../../figures_and_panels/Gold_ebmedding_animation.gif",animate(sg1,duration=20,fps=10))
+anim_save("Gold_ebmedding_animation.gif",animate(sg1,duration=20,fps=10))
 ```

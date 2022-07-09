@@ -1,6 +1,6 @@
 ---
 title: "countland: pig and placozoa"
-output: rmarkdown::html_vignette
+output: rmarkdown::github_document
 vignette: >
   %\VignetteIndexEntry{countland: pig and placozoa}
   %\VignetteEngine{knitr::rmarkdown}
@@ -41,8 +41,8 @@ theme_set(theme_classic())
 Here we apply countland to a dataset from the placozoan (_Trichoplax adherens_) provided by [Sebé-Pedros _et al_ (2018)](https://doi.org/10.1038/s41559-018-0575-6), and a dataset from the pig (_Sus scrofa_) provided by [van Zyl _et al_ (2020](https://www.pnas.org/cgi/doi/10.1073/pnas.2001250117).
 
 ```{r data}
-Tri.data <- Seurat::Read10X(data.dir = "../../data/Trichoplax_SebePedros2018/")
-Sus.data <- Seurat::Read10X(data.dir = "../../data/Pig9_vanZyl2020_mtx/")
+Tri.data <- Seurat::Read10X(data.dir = "../data/Trichoplax_SebePedros2018/")
+Sus.data <- Seurat::Read10X(data.dir = "../data/Pig9_vanZyl2020_mtx/")
 ```
 
 ## Run countland

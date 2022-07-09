@@ -39,8 +39,8 @@ We have used the Gold standard dataset provided by [Freytag _et al_ (2018)](10.1
 `countland` accepts an sparse data matrix (as does `Seurat`). 
 
 ```{r data}
-gold_path <- system.file("extdata", "Gold_Freytag2018/", package = "countland", mustWork = TRUE)
-gold.data <- Seurat::Read10X(data.dir = gold_path)
+#gold_path <- system.file(, package = "countland", mustWork = TRUE)
+gold.data <- Seurat::Read10X(data.dir = "../data/Gold_Freytag2018/")
 m <- gold.data
 ```
 
@@ -168,20 +168,20 @@ With `countland`, such data filtering may not be necessary or helpful, so we don
 # cells with fewer than 8,500 unique features
 filter_cell_names <- C@cell_scores[C@cell_scores$n_features < 8500,]$names
 filter_cell_index <- which(C@names_cells %in% filter_cell_names) 
-C <- SubsetCells(C,filter_cell_index,remove_empty=FALSE)
+#C <- SubsetCells(C,filter_cell_index,remove_empty=FALSE)
 ```
 
 ```{r filt-gene}
 # cells with greater than 100 observations
 filter_gene_names <- C@gene_scores[C@gene_scores$n_cells > 100,]$names
 filter_gene_index <- which(C@names_genes %in% filter_gene_names) 
-C <- SubsetGenes(C,filter_gene_index,remove_empty=FALSE)
+#C <- SubsetGenes(C,filter_gene_index,remove_empty=FALSE)
 ```
 
 The original count matrix can be restored at any time.
 
 ```{r restore}
-C <- RestoreCounts(C)
+#C <- RestoreCounts(C)
 ```
 
 ## Identify marker genes

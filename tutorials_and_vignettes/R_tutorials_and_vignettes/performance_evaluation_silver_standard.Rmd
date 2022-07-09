@@ -27,7 +27,7 @@ set.seed(84095)
 We have used the Silver standard dataset(3A) provided by [Freytag _et al_ (2018)](10.12688/f1000research.15809.2). This data consists of 4,300 cells that have reported labels corresponding to human blood cell lines.
 
 ```{r data}
-silver.data <- Seurat::Read10X(data.dir = "../../data/Silver_Freytag2018/SilverDataset3a_Freytag2018")
+silver.data <- Seurat::Read10X(data.dir = "../data/Silver_Freytag2018/SilverDataset3a_Freytag2018")
 ```
 
 ## Analyze the Silver standard dataset 

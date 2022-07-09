@@ -28,7 +28,7 @@ set.seed(84095)
 We have used the Gold standard dataset provided by [Freytag _et al_ (2018)](10.12688/f1000research.15809.2). This data consists of ~1000 cells that have ground truth labels corresponding to three human lung cell lines.
 
 ```{r data}
-gold.data <- Read10X(data.dir = "../../data/Gold_Freytag2018/")
+gold.data <- Read10X(data.dir = "../data/Gold_Freytag2018/")
 m <- gold.data
 ```
 
@@ -144,7 +144,7 @@ grid.arrange(g1,g2,ncol=2)
 ```
 
 ```{r save-spectral-gold,include=F}
-pdf("../../figures_and_panels/Gold_spectral_cluster_results.pdf",height=3,width=6)
+pdf("Gold_spectral_cluster_results.pdf",height=3,width=6)
 grid.arrange(g1,g2,ncol=2)
 dev.off()
 ```

@@ -1,6 +1,7 @@
 ---
 title: "countland and Seurat"
-output: rmarkdown::html_vignette
+output: rmarkdown::github_document
+always_allow_html: true
 vignette: >
   %\VignetteIndexEntry{countland and Seurat}
   %\VignetteEngine{knitr::rmarkdown}
@@ -37,7 +38,7 @@ set.seed(84095) # choose a random seed for reproducibility
 Here we are using the Gold standard dataset from [Freytag _et al_](10.12688/f1000research.15809.2), here's a look at it before filtering.
 
 ```{r seurat-init}
-gold.data <- Seurat::Read10X(data.dir = "../../data/Gold_Freytag2018")
+gold.data <- Seurat::Read10X(data.dir = "../data/Gold_Freytag2018")
 ```
 
 ```{r countland-init}

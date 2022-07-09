@@ -22,6 +22,8 @@ The following packages are required to complete the tutorial
 ``` r
 library(countland)
 library(Seurat) # for reading in the data
+#> Attaching SeuratObject
+#> Attaching sp
 library(ggplot2)
 theme_set(theme_classic())
 set.seed(84095) # set random seed for reproducibility
@@ -37,8 +39,8 @@ cell lines.
 `countland` accepts an sparse data matrix (as does `Seurat`).
 
 ``` r
-gold_path <- system.file("extdata", "Gold_Freytag2018/", package = "countland", mustWork = TRUE)
-gold.data <- Seurat::Read10X(data.dir = gold_path)
+#gold_path <- system.file(, package = "countland", mustWork = TRUE)
+gold.data <- Seurat::Read10X(data.dir = "../data/Gold_Freytag2018/")
 m <- gold.data
 ```
 
@@ -106,27 +108,20 @@ expression measures across genes. These measures include:
 # calculate expression scores across genes
 C <- ScoreGenes(C)
 head(C@gene_scores)
-#>             names n_cells max_count_value total_counts
-#> 1 ENSG00000000003     825              26         3289
-#> 2 ENSG00000000419     922              58        10379
-#> 3 ENSG00000000457     226               4          278
-#> 4 ENSG00000000460     446               6          805
-#> 5 ENSG00000000938       2               1            2
-#> 6 ENSG00000000971     321               7          565
-#>   n_cells_above1 n_cells_above10 unique_count_values
-#> 1            662              38                  20
-#> 2            914             384                  43
-#> 3             40               0                   4
-#> 4            202               0                   6
-#> 5              0               0                   1
-#> 6            144               0                   7
-#>   count_index
-#> 1          13
-#> 2          30
-#> 3           3
-#> 4           5
-#> 5           1
-#> 6           6
+#>             names n_cells max_count_value total_counts n_cells_above1
+#> 1 ENSG00000000003     825              26         3289            662
+#> 2 ENSG00000000419     922              58        10379            914
+#> 3 ENSG00000000457     226               4          278             40
+#> 4 ENSG00000000460     446               6          805            202
+#> 5 ENSG00000000938       2               1            2              0
+#> 6 ENSG00000000971     321               7          565            144
+#>   n_cells_above10 unique_count_values count_index
+#> 1              38                  20          13
+#> 2             384                  43          30
+#> 3               0                   4           3
+#> 4               0                   6           5
+#> 5               0                   1           1
+#> 6               0                   7           6
 ```
 
 We can also calculate the same measures, but across cells.
@@ -143,27 +138,27 @@ gene_string <- "162396$"
 # calculate expression scores across cells
 C <- ScoreCells(C,gene_string)
 head(C@cell_scores)
-#>                      names n_features max_count_value
-#> 1 H1975_AAAGATGCACATTTCT-1       8574            1010
-#> 2 H1975_AAAGATGTCCTTTACA-1       9190            1803
-#> 3 H1975_AAATGCCCACTTCGAA-1       8433            1097
-#> 4 H1975_AAATGCCTCATATCGG-1       8311            1678
-#> 5 H1975_AACACGTGTCAGAAGC-1       8642            1142
-#> 6 H1975_AACCATGAGCGTAGTG-1       7907            1549
-#>   total_counts n_features_above1 n_features_above10
-#> 1       100763              5746               1432
-#> 2       121201              6316               1567
-#> 3        95220              5643               1390
-#> 4        99321              5556               1247
-#> 5       106598              5833               1431
-#> 6        90917              5058               1127
-#>   unique_count_values count_index feature_match_counts
-#> 1                 227         127                    0
-#> 2                 245         137                    1
-#> 3                 219         127                    0
-#> 4                 221         131                    0
-#> 5                 231         133                    0
-#> 6                 214         128                    0
+#>                      names n_features max_count_value total_counts
+#> 1 H1975_AAAGATGCACATTTCT-1       8574            1010       100763
+#> 2 H1975_AAAGATGTCCTTTACA-1       9190            1803       121201
+#> 3 H1975_AAATGCCCACTTCGAA-1       8433            1097        95220
+#> 4 H1975_AAATGCCTCATATCGG-1       8311            1678        99321
+#> 5 H1975_AACACGTGTCAGAAGC-1       8642            1142       106598
+#> 6 H1975_AACCATGAGCGTAGTG-1       7907            1549        90917
+#>   n_features_above1 n_features_above10 unique_count_values count_index
+#> 1              5746               1432                 227         127
+#> 2              6316               1567                 245         137
+#> 3              5643               1390                 219         127
+#> 4              5556               1247                 221         131
+#> 5              5833               1431                 231         133
+#> 6              5058               1127                 214         128
+#>   feature_match_counts
+#> 1                    0
+#> 2                    1
+#> 3                    0
+#> 4                    0
+#> 5                    0
+#> 6                    0
 ```
 
 ## Cluster cells by similarity
@@ -180,30 +175,18 @@ C <- Dot(C)
 # preview the resulting similarity matrix
 C@dots[1:5,1:5]
 #> 5 x 5 sparse Matrix of class "dgCMatrix"
-#>                          H2228_AAACCTGCAGACACTT-1
-#> H2228_AAACCTGCAGACACTT-1                 28462878
-#> H1975_AAAGATGCACATTTCT-1                 20223823
-#> H1975_AAAGATGTCCTTTACA-1                 28226410
-#> H2228_AAAGCAACATCAGTAC-1                 34194398
-#> H1975_AAATGCCCACTTCGAA-1                 19182289
-#>                          H1975_AAAGATGCACATTTCT-1
-#> H2228_AAACCTGCAGACACTT-1                 20223823
-#> H1975_AAAGATGCACATTTCT-1                 21073555
-#> H1975_AAAGATGTCCTTTACA-1                 26372201
-#> H2228_AAAGCAACATCAGTAC-1                 28025133
-#> H1975_AAATGCCCACTTCGAA-1                 18950157
-#>                          H1975_AAAGATGTCCTTTACA-1
-#> H2228_AAACCTGCAGACACTT-1                 28226410
-#> H1975_AAAGATGCACATTTCT-1                 26372201
-#> H1975_AAAGATGTCCTTTACA-1                 39374647
-#> H2228_AAAGCAACATCAGTAC-1                 37423857
-#> H1975_AAATGCCCACTTCGAA-1                 24468440
-#>                          H2228_AAAGCAACATCAGTAC-1
-#> H2228_AAACCTGCAGACACTT-1                 34194398
-#> H1975_AAAGATGCACATTTCT-1                 28025133
-#> H1975_AAAGATGTCCTTTACA-1                 37423857
-#> H2228_AAAGCAACATCAGTAC-1                 48948460
-#> H1975_AAATGCCCACTTCGAA-1                 26217138
+#>                          H2228_AAACCTGCAGACACTT-1 H1975_AAAGATGCACATTTCT-1
+#> H2228_AAACCTGCAGACACTT-1                 28462878                 20223823
+#> H1975_AAAGATGCACATTTCT-1                 20223823                 21073555
+#> H1975_AAAGATGTCCTTTACA-1                 28226410                 26372201
+#> H2228_AAAGCAACATCAGTAC-1                 34194398                 28025133
+#> H1975_AAATGCCCACTTCGAA-1                 19182289                 18950157
+#>                          H1975_AAAGATGTCCTTTACA-1 H2228_AAAGCAACATCAGTAC-1
+#> H2228_AAACCTGCAGACACTT-1                 28226410                 34194398
+#> H1975_AAAGATGCACATTTCT-1                 26372201                 28025133
+#> H1975_AAAGATGTCCTTTACA-1                 39374647                 37423857
+#> H2228_AAAGCAACATCAGTAC-1                 37423857                 48948460
+#> H1975_AAATGCCCACTTCGAA-1                 24468440                 26217138
 #>                          H1975_AAATGCCCACTTCGAA-1
 #> H2228_AAACCTGCAGACACTT-1                 19182289
 #> H1975_AAAGATGCACATTTCT-1                 18950157
@@ -348,26 +331,20 @@ so we don’t recommend any filtering scheme by default.
 # cells with fewer than 8,500 unique features
 filter_cell_names <- C@cell_scores[C@cell_scores$n_features < 8500,]$names
 filter_cell_index <- which(C@names_cells %in% filter_cell_names) 
-C <- SubsetCells(C,filter_cell_index,remove_empty=FALSE)
-#> [1] "new number of genes: 29212"
-#> [1] "new number of cells: 463"
+#C <- SubsetCells(C,filter_cell_index,remove_empty=FALSE)
 ```
 
 ``` r
 # cells with greater than 100 observations
 filter_gene_names <- C@gene_scores[C@gene_scores$n_cells > 100,]$names
 filter_gene_index <- which(C@names_genes %in% filter_gene_names) 
-C <- SubsetGenes(C,filter_gene_index,remove_empty=FALSE)
-#> [1] "new number of genes: 13368"
-#> [1] "new number of cells: 463"
+#C <- SubsetGenes(C,filter_gene_index,remove_empty=FALSE)
 ```
 
 The original count matrix can be restored at any time.
 
 ``` r
-C <- RestoreCounts(C)
-#> [1] "new number of genes: 29212"
-#> [1] "new number of cells: 925"
+#C <- RestoreCounts(C)
 ```
 
 ## Identify marker genes
@@ -387,28 +364,17 @@ one, indicating it was expressed in all cluster cells and no others.
 ``` r
 C <- RankMarkerGenes(C,method='prop-zero',subsample=F)
 C@marker_genes[(C@marker_genes$cluster_label == 1),]
-#>                           names gene_index diff.zeros
-#> ENSG00000253706 ENSG00000253706      13393  0.9155633
-#> ENSG00000258484 ENSG00000258484      21428  0.8744115
-#> ENSG00000233429 ENSG00000233429      10683  0.8721458
-#> ENSG00000167641 ENSG00000167641      27283  0.8431677
-#> ENSG00000225548 ENSG00000225548       4990  0.8379180
-#> ENSG00000169213 ENSG00000169213        933  0.8241418
-#> ENSG00000260027 ENSG00000260027      24360  0.8069948
-#> ENSG00000249395 ENSG00000249395      13397  0.7898422
-#> ENSG00000134709 ENSG00000134709       1030  0.7687606
-#> ENSG00000261780 ENSG00000261780      25457  0.7581397
-#>                 rank cluster_label
-#> ENSG00000253706    1             1
-#> ENSG00000258484    2             1
-#> ENSG00000233429    3             1
-#> ENSG00000167641    4             1
-#> ENSG00000225548    5             1
-#> ENSG00000169213    6             1
-#> ENSG00000260027    7             1
-#> ENSG00000249395    8             1
-#> ENSG00000134709    9             1
-#> ENSG00000261780   10             1
+#>                           names gene_index diff.zeros rank cluster_label
+#> ENSG00000253706 ENSG00000253706      13393  0.9155633    1             1
+#> ENSG00000258484 ENSG00000258484      21428  0.8744115    2             1
+#> ENSG00000233429 ENSG00000233429      10683  0.8721458    3             1
+#> ENSG00000167641 ENSG00000167641      27283  0.8431677    4             1
+#> ENSG00000225548 ENSG00000225548       4990  0.8379180    5             1
+#> ENSG00000169213 ENSG00000169213        933  0.8241418    6             1
+#> ENSG00000260027 ENSG00000260027      24360  0.8069948    7             1
+#> ENSG00000249395 ENSG00000249395      13397  0.7898422    8             1
+#> ENSG00000134709 ENSG00000134709       1030  0.7687606    9             1
+#> ENSG00000261780 ENSG00000261780      25457  0.7581397   10             1
 ```
 
 ``` r
@@ -440,39 +406,28 @@ C <- Subsample(C,cell_counts='min')
 #> [1] "subsampling all cells to a standard sequencing depth of 40152"
 C <- RankMarkerGenes(C,method='rank-sums',subsample=T)
 C@marker_genes[(C@marker_genes$cluster_label == 1),]
-#>                 names gene_index statistic
-#> 27283 ENSG00000167641      27283  176043.5
-#> 1550  ENSG00000232527       1550  174759.5
-#> 18498 ENSG00000166908      18498  179050.5
-#> 10909 ENSG00000132434      10909  178674.0
-#> 18560 ENSG00000183735      18560  179499.5
-#> 14061 ENSG00000147889      14061  180728.5
-#> 18504 ENSG00000135506      18504  180463.5
-#> 10902 ENSG00000132432      10902  180957.0
-#> 10910 ENSG00000154978      10910  180123.0
-#> 836   ENSG00000142937        836  180494.0
-#>              pvalue    adj.pvalue significant rank
-#> 27283 1.824520e-161 5.329789e-157        TRUE    1
-#> 1550  2.399684e-145 3.504978e-141        TRUE    2
-#> 18498 3.164491e-136 3.081370e-132        TRUE    3
-#> 10909 1.511825e-135 1.104086e-131        TRUE    4
-#> 18560 1.920151e-135 1.121829e-131        TRUE    5
-#> 14061 1.639308e-131 7.981246e-128        TRUE    6
-#> 18504 4.598513e-130 1.919025e-126        TRUE    7
-#> 10902 7.701276e-130 2.812121e-126        TRUE    8
-#> 10910 5.845003e-129 1.897158e-125        TRUE    9
-#> 836   1.630168e-128 4.762047e-125        TRUE   10
-#>       cluster_label
-#> 27283             1
-#> 1550              1
-#> 18498             1
-#> 10909             1
-#> 18560             1
-#> 14061             1
-#> 18504             1
-#> 10902             1
-#> 10910             1
-#> 836               1
+#>                 names gene_index statistic        pvalue    adj.pvalue
+#> 27283 ENSG00000167641      27283  176043.5 1.824520e-161 5.329789e-157
+#> 1550  ENSG00000232527       1550  174759.5 2.399684e-145 3.504978e-141
+#> 18498 ENSG00000166908      18498  179050.5 3.164491e-136 3.081370e-132
+#> 10909 ENSG00000132434      10909  178674.0 1.511825e-135 1.104086e-131
+#> 18560 ENSG00000183735      18560  179499.5 1.920151e-135 1.121829e-131
+#> 14061 ENSG00000147889      14061  180728.5 1.639308e-131 7.981246e-128
+#> 18504 ENSG00000135506      18504  180463.5 4.598513e-130 1.919025e-126
+#> 10902 ENSG00000132432      10902  180957.0 7.701276e-130 2.812121e-126
+#> 10910 ENSG00000154978      10910  180123.0 5.845003e-129 1.897158e-125
+#> 836   ENSG00000142937        836  180494.0 1.630168e-128 4.762047e-125
+#>       significant rank cluster_label
+#> 27283        TRUE    1             1
+#> 1550         TRUE    2             1
+#> 18498        TRUE    3             1
+#> 10909        TRUE    4             1
+#> 18560        TRUE    5             1
+#> 14061        TRUE    6             1
+#> 18504        TRUE    7             1
+#> 10902        TRUE    8             1
+#> 10910        TRUE    9             1
+#> 836          TRUE   10             1
 ```
 
 ``` r
