@@ -13,9 +13,9 @@ SubsetGenes <- function(C,gene_indices,remove_empty=TRUE){
   if(remove_empty==TRUE){
     print("after subsetting and removing empty cells and genes,")
     C <- RemoveEmpty(C)
-    LogGeneNumber(C)
+    PrintGeneNumber(C)
   } else {
-    LogGeneNumber(C)
+    PrintGeneNumber(C)
   }
 
   return(C)
@@ -35,9 +35,9 @@ SubsetCells <- function(C,cell_indices,remove_empty=TRUE){
   if(remove_empty==TRUE){
     print("after subsetting and removing empty cells and genes,")
     C <- RemoveEmpty(C)
-    LogGeneNumber(C)
+    PrintGeneNumber(C)
   } else {
-    LogGeneNumber(C)
+    PrintGeneNumber(C)
   }
 
   return(C)
@@ -54,7 +54,7 @@ RestoreCounts <- function(C){
   C@counts <- C@raw_counts
   C@names_genes <- C@counts@Dimnames[[1]]
   C@names_cells <- C@counts@Dimnames[[2]]
-  LogGeneNumber(C)
+  PrintGeneNumber(C)
 
   return(C)
 }

@@ -109,7 +109,7 @@ countland <- function(m,remove_empty=TRUE,verbose=TRUE){
 #' @param C countland object
 #'
 #' @return countland object
-LogGeneNumber <- function(C){
+PrintGeneNumber <- function(C){
     print(paste0("new number of genes: ",nrow(C@counts)))
     print(paste0("new number of cells: ",ncol(C@counts)))
 }
@@ -119,7 +119,6 @@ LogGeneNumber <- function(C){
 #' @param C  countland object
 #'
 #' @return countland object, count matrix updated
-#' @export
 RemoveEmpty <- function(C){
 
     cell_indices <- which(diff(C@counts@p)>0)
