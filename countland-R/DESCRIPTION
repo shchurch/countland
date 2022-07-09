@@ -23,28 +23,23 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.2
-Imports: 
-    tidyverse,
-    ggplot2,
-    igraph,
-    Matrix,
-    matrixTests,
+Imports:
     methods,
+    rlang,
+    Matrix,
+    ggplot2
+Suggests: 
+    tidyverse,
+    viridis,
+    gridExtra,
+    igraph,
+    RSpectra, 
+    matrixTests,
     rdist,
     IMA,
-    RSpectra,
-    Seurat,
     stats,
-    viridis,
-    rlang
-Suggests: 
-    knitr,
-    rmarkdown,
-    aricode,
-    clevr,
-    networkD3,
+    Seurat,
     testthat (>= 3.0.0)
 Remotes:
     shchurch/integer_matrix_approximation/IMA-R
-VignetteBuilder: knitr
 Config/testthat/edition: 3
