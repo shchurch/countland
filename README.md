@@ -26,9 +26,9 @@ To activate the conda environment (before each use):
 
 The easiest way to run the tutorial is as a Google Colab notebook. Just open the following link and follow the instructions:
 
-https://colab.research.google.com/github/shchurch/countland/blob/main/countland-py/vignettes/vignette_tutorial.ipynb
+https://colab.research.google.com/github/shchurch/countland/blob/main/tutorials_and_vignettes/python_tutorials_and_vignettes/vignette_tutorial.ipynb
 
-Alternatively, [the `python` tutorial](./countland-py/vignettes/vignette_tutorial.ipynb) can be run locally in a [jupyter notebook](https://jupyter.org/).
+Alternatively, [the `python` tutorial](./tutorials_and_vignettes/python_tutorials_and_vignettes//vignette_tutorial.ipynb) can be run locally in a [jupyter notebook](https://jupyter.org/).
 
 ## `R`
 
@@ -41,7 +41,7 @@ From an `R` prompt, run the following:
 
 ### Running the tutorial in `R`
 
-[The `R` tutorial](./countland-R/vignettes/vignette-tutorial.Rmd) can be run locally as an Rmarkdown file, e.g. knit in [RStudio](https://www.rstudio.com/).
+[The `R` tutorial](./tutorials_and_vignettes/R_tutorials_and_vignettes//vignette-tutorial.Rmd) can be run locally as an Rmarkdown file, e.g. knit in [RStudio](https://www.rstudio.com/).
 
 ## Development
 
