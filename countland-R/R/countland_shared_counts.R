@@ -52,7 +52,7 @@ SharedCounts <- function(C,n_clusters,n_cells=100,subsample=T){
 PlotSharedCounts <- function(C,x = 1, y = 2,colors=color_palette){
   loading <- C@sum_sharedcounts
 
-  ld <- setNames(data.frame(loading[x,],loading[y,],C@cluster_labels),c("f1","f2","cluster"))
+  ld <- setNames(data.frame(loading[x,],loading[y,],C@cluster_labels,row.names=NULL),c("f1","f2","cluster"))
   ggplot(ld,aes(x = .data$f1, y = .data$f2, color = as.character(.data$cluster))) +
     geom_point(size=1) +
     scale_color_manual(values = colors) +

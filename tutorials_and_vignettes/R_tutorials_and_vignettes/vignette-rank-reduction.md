@@ -261,23 +261,23 @@ gold <- RunUMAP(gold, dims = 1:10)
 #> Warning: The default method for RunUMAP has changed from calling Python UMAP via reticulate to the R-native UWOT using the cosine metric
 #> To use Python UMAP via reticulate, set umap.method to 'umap-learn' and metric to 'correlation'
 #> This message will be shown once per session
-#> 07:56:14 UMAP embedding parameters a = 0.9922 b = 1.112
-#> 07:56:14 Read 925 rows and found 10 numeric columns
-#> 07:56:14 Using Annoy for neighbor search, n_neighbors = 30
-#> 07:56:14 Building Annoy index with metric = cosine, n_trees = 50
+#> 14:42:44 UMAP embedding parameters a = 0.9922 b = 1.112
+#> 14:42:44 Read 925 rows and found 10 numeric columns
+#> 14:42:44 Using Annoy for neighbor search, n_neighbors = 30
+#> 14:42:44 Building Annoy index with metric = cosine, n_trees = 50
 #> 0%   10   20   30   40   50   60   70   80   90   100%
 #> [----|----|----|----|----|----|----|----|----|----|
 #> **************************************************|
-#> 07:56:14 Writing NN index file to temp file /var/folders/tq/3qjvbb7j0_vg8ksxzrsmwlk80000gn/T//RtmpQTx6TX/file65be113305a3
-#> 07:56:14 Searching Annoy index using 1 thread, search_k = 3000
-#> 07:56:14 Annoy recall = 100%
-#> 07:56:15 Commencing smooth kNN distance calibration using 1 thread
-#> 07:56:15 Found 2 connected components, falling back to 'spca' initialization with init_sdev = 1
-#> 07:56:15 Initializing from PCA
-#> 07:56:15 Using 'irlba' for PCA
-#> 07:56:15 PCA: 2 components explained 66.99% variance
-#> 07:56:15 Commencing optimization for 500 epochs, with 33948 positive edges
-#> 07:56:17 Optimization finished
+#> 14:42:44 Writing NN index file to temp file /var/folders/tq/3qjvbb7j0_vg8ksxzrsmwlk80000gn/T//Rtmp3dgTWK/file1f5b4e22ff48
+#> 14:42:44 Searching Annoy index using 1 thread, search_k = 3000
+#> 14:42:44 Annoy recall = 100%
+#> 14:42:45 Commencing smooth kNN distance calibration using 1 thread
+#> 14:42:46 Found 2 connected components, falling back to 'spca' initialization with init_sdev = 1
+#> 14:42:46 Initializing from PCA
+#> 14:42:46 Using 'irlba' for PCA
+#> 14:42:46 PCA: 2 components explained 66.99% variance
+#> 14:42:46 Commencing optimization for 500 epochs, with 33948 positive edges
+#> 14:42:47 Optimization finished
 ```
 
 ``` r
