@@ -14,3 +14,12 @@ PlotEmbedding(C, colors = color_palette)
 \description{
 Plot cells using spectral embedding of dot products.
 }
+\examples{
+gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)
+gold.data <- Seurat::Read10X(data.dir = gold_path)
+C <- countland(gold.data)
+C <- Dot(C)
+C <- Embed(C,n_components=5)
+C <- Cluster(C,n_clusters=3)
+PlotEmbedding(C)
+}

@@ -15,3 +15,11 @@ countland object
 \description{
 Restore count matrix to original state
 }
+\examples{
+gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)
+gold.data <- Seurat::Read10X(data.dir = gold_path)
+C <- countland(gold.data)
+C <- SubsetGenes(C,gene_indices=1:200)
+C <- SubsetCells(C,cell_indices=1:50)
+C <- RestoreCounts(C)
+}

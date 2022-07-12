@@ -12,3 +12,11 @@ PlotEigengap(C)
 \description{
 Plots eigenvalues to investigate the optimal number of clusters
 }
+\examples{
+gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)
+gold.data <- Seurat::Read10X(data.dir = gold_path)
+C <- countland(gold.data)
+C <- Dot(C)
+C <- Embed(C,n_components=5)
+PlotEigengap(C)
+}

@@ -16,3 +16,9 @@ PlotGeneCounts(C, gene_indices, colors = color_palette)
 \description{
 Generate a strip plot for counts across selected genes
 }
+\examples{
+gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)
+gold.data <- Seurat::Read10X(data.dir = gold_path)
+C <- countland(gold.data)
+PlotGeneCounts(C,gene_indices=1:10)
+}

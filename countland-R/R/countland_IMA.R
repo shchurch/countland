@@ -1,8 +1,8 @@
 color_palette <- c("#8c564b", "#9467bd", "#2ca02c", "#e377c2", "#d62728", "#17becf", "#bcbd22", "#ff7f0e", "#7f7f7f", "#1f77b4")
 
-#' Perofrm integer matrix approximatin on count matrix.
+#' Perform integer matrix approximation on count matrix.
 #'
-#' @param C countland objecvt
+#' @param C countland object
 #' @param features target number of features, integer
 #' @param u_bounds upper bounds for U and V matrices, vector of length 2
 #' @param l_bounds lower bounds for U and V matrices, vector of length 2 (default=c(0,0))
@@ -12,6 +12,11 @@ color_palette <- c("#8c564b", "#9467bd", "#2ca02c", "#e377c2", "#d62728", "#17be
 #'
 #' @return countland object with slots `matrixU`, `matrixV`, `matrixLambda`
 #' @export
+#' @examples
+#' gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)
+#' gold.data <- Seurat::Read10X(data.dir = gold_path)
+#' C <- countland(gold.data)
+#' C <- RunIMA(C,features=10,u_bounds=c(10,10),subsample=FALSE)
 RunIMA <- function(C,features,u_bounds,l_bounds=c(0,0),maxiter=1000000,stop_crit=0.0001,subsample=TRUE){
 	if(subsample==FALSE){
         sg <- as(Matrix::t(C@counts),"matrix")

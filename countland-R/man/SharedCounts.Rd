@@ -4,12 +4,12 @@
 \alias{SharedCounts}
 \title{Combine groups of genes with similar counts by clustering and summing.}
 \usage{
-SharedCounts(C, n_clusters, n_cells = 100, subsample = T)
+SharedCounts(C, n_clusters, n_cells = 100, subsample = TRUE)
 }
 \arguments{
 \item{C}{countland object}
 
-\item{n_clusters}{nubmer of clusters}
+\item{n_clusters}{number of clusters}
 
 \item{n_cells}{number of cells to sample for gene clustering}
 
@@ -20,4 +20,10 @@ countland object with slots \code{shared_counts}, \code{sum_sharedcounts}, \code
 }
 \description{
 Combine groups of genes with similar counts by clustering and summing.
+}
+\examples{
+gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)
+gold.data <- Seurat::Read10X(data.dir = gold_path)
+C <- countland(gold.data)
+C <- SharedCounts(C,n_clusters=10,subsample=FALSE)
 }

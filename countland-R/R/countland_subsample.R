@@ -35,6 +35,11 @@ listCols<-function(m){
 #'
 #' @return countland object with slot `subsample`
 #' @export
+#' @examples
+#' gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)
+#' gold.data <- Seurat::Read10X(data.dir = gold_path)
+#' C <- countland(gold.data)
+#' C <- Subsample(C,gene_counts=250,cell_counts=100)
 Subsample <- function(C,gene_counts=NA,cell_counts=NA){
     stopifnot("must choose either gene_counts or cell_counts"= !(is.na(gene_counts) && is.na(cell_counts)))
 

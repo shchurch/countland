@@ -8,6 +8,14 @@ color_palette <- c("#8c564b", "#9467bd", "#2ca02c", "#e377c2", "#d62728", "#17be
 #'
 #' @return countland object with slots `marker_genes` and `marker_full`
 #' @export
+#' @examples
+#' gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)
+#' gold.data <- Seurat::Read10X(data.dir = gold_path)
+#' C <- countland(gold.data)
+#' C <- Dot(C)
+#' C <- Embed(C,n_components=5)
+#' C <- Cluster(C,n_clusters=3)
+#' C <- RankMarkerGenes(C,method='prop-zero',subsample=FALSE)
 RankMarkerGenes <- function(C,method='prop-zero',subsample=FALSE){
   if(subsample==FALSE){
     counts <- C@counts

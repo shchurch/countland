@@ -20,7 +20,7 @@ An S4 class to represent a countland object
 
 \item{\code{raw_names_genes}}{The gene name character vector as originally loaded.}
 
-\item{\code{raw_names_cells}}{The cell name characgter vector as originally loaded.}
+\item{\code{raw_names_cells}}{The cell name character vector as originally loaded.}
 
 \item{\code{subsample}}{A dgCMatrix with row sums equal.}
 
@@ -34,7 +34,7 @@ An S4 class to represent a countland object
 
 \item{\code{embedding}}{An array of two columns (spectral embeddings).}
 
-\item{\code{cluster_labels}}{A numeric vector of cluster assignemnts of length n cells.}
+\item{\code{cluster_labels}}{A numeric vector of cluster assignments of length n cells.}
 
 \item{\code{marker_full}}{A list of data.frames with genes ranked for each cluster.}
 
@@ -56,7 +56,7 @@ An S4 class to represent a countland object
 
 \item{\code{norm_counts}}{A dgCMatrix of normalized counts.}
 
-\item{\code{log_counts}}{A dgCMatrix of log trasnformed counts.}
+\item{\code{log_counts}}{A dgCMatrix of log transformed counts.}
 
 \item{\code{scaled_counts}}{A dgCMatrix of counts scaled by gene unit variance.}
 

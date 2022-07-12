@@ -6,6 +6,11 @@
 #'
 #' @return countland object, count matrix updated
 #' @export
+#' @examples
+#' gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)
+#' gold.data <- Seurat::Read10X(data.dir = gold_path)
+#' C <- countland(gold.data)
+#' C <- SubsetGenes(C,gene_indices=1:200)
 SubsetGenes <- function(C,gene_indices,remove_empty=TRUE){
   C@counts <- C@counts[gene_indices,]
   C@names_genes <- C@names_genes[gene_indices]
@@ -21,7 +26,7 @@ SubsetGenes <- function(C,gene_indices,remove_empty=TRUE){
   return(C)
 }
 
-#' Subsets cells using a vecvtor of cell indices
+#' Subsets cells using a vector of cell indices
 #'
 #' @param C countland object
 #' @param cell_indices vector of cell index values
@@ -29,6 +34,11 @@ SubsetGenes <- function(C,gene_indices,remove_empty=TRUE){
 #'
 #' @return countland object, count matrix updated
 #' @export
+#' @examples
+#' gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)
+#' gold.data <- Seurat::Read10X(data.dir = gold_path)
+#' C <- countland(gold.data)
+#' C <- SubsetCells(C,cell_indices=1:50)
 SubsetCells <- function(C,cell_indices,remove_empty=TRUE){
   C@counts <- C@counts[,cell_indices]
   C@names_cells <- C@names_cells[cell_indices]
@@ -49,6 +59,13 @@ SubsetCells <- function(C,cell_indices,remove_empty=TRUE){
 #'
 #' @return countland object
 #' @export
+#' @examples
+#' gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)
+#' gold.data <- Seurat::Read10X(data.dir = gold_path)
+#' C <- countland(gold.data)
+#' C <- SubsetGenes(C,gene_indices=1:200)
+#' C <- SubsetCells(C,cell_indices=1:50)
+#' C <- RestoreCounts(C)
 RestoreCounts <- function(C){
 
   C@counts <- C@raw_counts

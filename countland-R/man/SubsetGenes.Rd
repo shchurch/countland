@@ -19,3 +19,9 @@ countland object, count matrix updated
 \description{
 Subsets genes using a vector of gene indices
 }
+\examples{
+gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)
+gold.data <- Seurat::Read10X(data.dir = gold_path)
+C <- countland(gold.data)
+C <- SubsetGenes(C,gene_indices=1:200)
+}

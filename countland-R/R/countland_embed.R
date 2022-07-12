@@ -39,6 +39,12 @@ ScikitManifoldSpectralEmbedding <- function(A,n_components){
 #'
 #' @return countland object with slot `embedding`, `eigenvals`
 #' @export
+#' @examples
+#' gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)
+#' gold.data <- Seurat::Read10X(data.dir = gold_path)
+#' C <- countland(gold.data)
+#' C <- Dot(C)
+#' C <- Embed(C,n_components=5)
 Embed <- function(C,n_components=10){
 
   print("Performing spectral embedding on dot products...")
@@ -63,6 +69,13 @@ Embed <- function(C,n_components=10){
 #' @param C countland object
 #'
 #' @export
+#' @examples
+#' gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)
+#' gold.data <- Seurat::Read10X(data.dir = gold_path)
+#' C <- countland(gold.data)
+#' C <- Dot(C)
+#' C <- Embed(C,n_components=5)
+#' PlotEigengap(C)
 PlotEigengap <- function(C){
 
   stopifnot("eigenvalues missing; run Embed() first"= length(C@eigenvals) > 0)

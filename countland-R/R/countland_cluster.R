@@ -4,10 +4,17 @@ color_palette <- c("#8c564b", "#9467bd", "#2ca02c", "#e377c2", "#d62728", "#17be
 #'
 #' @param C countland object
 #' @param n_clusters number of clusters, integer
-#' @param n_components number of compnonets from spectral embedding to use (default NULL, will be set to n_clusters), integer
+#' @param n_components number of components from spectral embedding to use (default NULL, will be set to n_clusters), integer
 #'
 #' @return countland object with slot `cluster_labels`
 #' @export
+#' @examples
+#' gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)
+#' gold.data <- Seurat::Read10X(data.dir = gold_path)
+#' C <- countland(gold.data)
+#' C <- Dot(C)
+#' C <- Embed(C,n_components=5)
+#' C <- Cluster(C,n_clusters=3)
 Cluster <- function(C,n_clusters,n_components=NULL){
 
   print("Performing spectral clustering on dot products...")
@@ -42,6 +49,14 @@ Cluster <- function(C,n_clusters,n_components=NULL){
 #' @param colors color palette for ggplot2, default=palette of 11 colors
 #'
 #' @export
+#' @examples
+#' gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)
+#' gold.data <- Seurat::Read10X(data.dir = gold_path)
+#' C <- countland(gold.data)
+#' C <- Dot(C)
+#' C <- Embed(C,n_components=5)
+#' C <- Cluster(C,n_clusters=3)
+#' PlotEmbedding(C)
 PlotEmbedding <- function(C,colors=color_palette){
 
   stopifnot("embedding missing; run Embed() first"= length(C@embedding) > 0)

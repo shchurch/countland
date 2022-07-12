@@ -17,3 +17,9 @@ countland object with slot \code{dots}
 \description{
 Calculate pairwise dot products of counts between all cells.
 }
+\examples{
+gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)
+gold.data <- Seurat::Read10X(data.dir = gold_path)
+C <- countland(gold.data)
+C <- Dot(C)
+}

@@ -19,3 +19,9 @@ countland object with slot \code{subsample}
 \description{
 Subsample cells to a standard number of counts by randomly sampling observations without replacement.
 }
+\examples{
+gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)
+gold.data <- Seurat::Read10X(data.dir = gold_path)
+C <- countland(gold.data)
+C <- Subsample(C,gene_counts=250,cell_counts=100)
+}

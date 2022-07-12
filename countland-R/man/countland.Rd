@@ -20,8 +20,7 @@ countland object
 Initialize a countland object from a dgCMatrix
 }
 \examples{
-m <- matrix(sample(seq(0,4),prob=c(0.95,0.3,0.1,0.05,0.05),2000,replace=TRUE),ncol=50)
-rownames(m) <- paste0("gene",seq_len(nrow(m)))
-colnames(m) <- paste0("cell",seq_len(ncol(m)))
-C <- countland(m)
+gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)
+gold.data <- Seurat::Read10X(data.dir = gold_path)
+C <- countland(gold.data)
 }

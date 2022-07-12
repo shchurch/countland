@@ -23,6 +23,11 @@ CountIndex<-function(lm){
 #'
 #' @return countland object with slot cell_scores
 #' @export
+#' @examples
+#' gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)
+#' gold.data <- Seurat::Read10X(data.dir = gold_path)
+#' C <- countland(gold.data)
+#' C <- ScoreCells(C,gene_string="*149932$")
 ScoreCells <- function(C,gene_string=NULL){
   cts <- C@counts
 
@@ -62,6 +67,11 @@ ScoreCells <- function(C,gene_string=NULL){
 #'
 #' @return countland object with slot gene_scores
 #' @export
+#' @examples
+#' gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)
+#' gold.data <- Seurat::Read10X(data.dir = gold_path)
+#' C <- countland(gold.data)
+#' C <- ScoreGenes(C)
 ScoreGenes <- function(C,subsample=FALSE){
 
   if(subsample==FALSE){
@@ -100,6 +110,11 @@ ScoreGenes <- function(C,subsample=FALSE){
 #' @param colors color palette for ggplot2, default=palette of 11 colors
 #'
 #' @export
+#' @examples
+#' gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)
+#' gold.data <- Seurat::Read10X(data.dir = gold_path)
+#' C <- countland(gold.data)
+#' PlotGeneCounts(C,gene_indices=1:10)
 PlotGeneCounts <- function(C,gene_indices,colors=color_palette){
   counts <- t(as(C@counts[gene_indices,],"matrix"))
   new_counts <- do.call(rbind,lapply(seq_len(ncol(counts)),function(x){data.frame("name" = colnames(counts)[x], "counts" = counts[,x])}))

@@ -2,7 +2,7 @@
 % Please edit documentation in R/countland_IMA.R
 \name{RunIMA}
 \alias{RunIMA}
-\title{Perofrm integer matrix approximatin on count matrix.}
+\title{Perform integer matrix approximation on count matrix.}
 \usage{
 RunIMA(
   C,
@@ -15,7 +15,7 @@ RunIMA(
 )
 }
 \arguments{
-\item{C}{countland objecvt}
+\item{C}{countland object}
 
 \item{features}{target number of features, integer}
 
@@ -33,5 +33,11 @@ RunIMA(
 countland object with slots \code{matrixU}, \code{matrixV}, \code{matrixLambda}
 }
 \description{
-Perofrm integer matrix approximatin on count matrix.
+Perform integer matrix approximation on count matrix.
+}
+\examples{
+gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)
+gold.data <- Seurat::Read10X(data.dir = gold_path)
+C <- countland(gold.data)
+C <- RunIMA(C,features=10,u_bounds=c(10,10),subsample=FALSE)
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/countland_subset.R
 \name{SubsetCells}
 \alias{SubsetCells}
-\title{Subsets cells using a vecvtor of cell indices}
+\title{Subsets cells using a vector of cell indices}
 \usage{
 SubsetCells(C, cell_indices, remove_empty = TRUE)
 }
@@ -17,5 +17,11 @@ SubsetCells(C, cell_indices, remove_empty = TRUE)
 countland object, count matrix updated
 }
 \description{
-Subsets cells using a vecvtor of cell indices
+Subsets cells using a vector of cell indices
+}
+\examples{
+gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)
+gold.data <- Seurat::Read10X(data.dir = gold_path)
+C <- countland(gold.data)
+C <- SubsetCells(C,cell_indices=1:50)
 }

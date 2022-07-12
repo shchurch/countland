@@ -3,13 +3,18 @@ color_palette <- c("#8c564b", "#9467bd", "#2ca02c", "#e377c2", "#d62728", "#17be
 #' Combine groups of genes with similar counts by clustering and summing.
 #'
 #' @param C countland object
-#' @param n_clusters nubmer of clusters
+#' @param n_clusters number of clusters
 #' @param n_cells number of cells to sample for gene clustering
 #' @param subsample if TRUE, use subsampled counts (default), otherwise use counts
 #'
 #' @return countland object with slots `shared_counts`, `sum_sharedcounts`, `sum_sharedcounts_all`
 #' @export
-SharedCounts <- function(C,n_clusters,n_cells=100,subsample=T){
+#' @examples
+#' gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)
+#' gold.data <- Seurat::Read10X(data.dir = gold_path)
+#' C <- countland(gold.data)
+#' C <- SharedCounts(C,n_clusters=10,subsample=FALSE)
+SharedCounts <- function(C,n_clusters,n_cells=100,subsample=TRUE){
   if(subsample==FALSE){
     sg <- C@counts
   } else {

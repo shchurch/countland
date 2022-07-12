@@ -5,6 +5,11 @@
 #'
 #' @return countland object with slot `dots`
 #' @export
+#' @examples
+#' gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)
+#' gold.data <- Seurat::Read10X(data.dir = gold_path)
+#' C <- countland(gold.data)
+#' C <- Dot(C)
 Dot <- function(C,subsample=FALSE){
   if(subsample==FALSE){
     counts <- C@counts

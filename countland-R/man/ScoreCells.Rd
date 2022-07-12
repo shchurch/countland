@@ -17,3 +17,9 @@ countland object with slot cell_scores
 \description{
 Calculate several scores for counts across cells
 }
+\examples{
+gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)
+gold.data <- Seurat::Read10X(data.dir = gold_path)
+C <- countland(gold.data)
+C <- ScoreCells(C,gene_string="*149932$")
+}

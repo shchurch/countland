@@ -17,3 +17,9 @@ countland object with slot gene_scores
 \description{
 Calculate several scores for count-based gene expression.
 }
+\examples{
+gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)
+gold.data <- Seurat::Read10X(data.dir = gold_path)
+C <- countland(gold.data)
+C <- ScoreGenes(C)
+}
