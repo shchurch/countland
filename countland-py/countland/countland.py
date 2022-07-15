@@ -714,7 +714,7 @@ class countland:
                 )
 
             else:
-                print("error: unrecognized method")
+                logging.info("error: unrecognized method")
                 return
 
             df["gene index"] = range(len(self.names_genes))
@@ -1041,7 +1041,7 @@ class countland:
             normalization factor for each cell
         """
 
-        print("Normalizing counts...")
+        logging.info("Normalizing counts...")
         # calculate normalization factors as in scanpy.pp.normalize_total
         self.norm_factor = 10000 / self.counts.sum(axis=1)
         self.norm_counts = self.counts * self.norm_factor[:, np.newaxis]
@@ -1058,9 +1058,9 @@ class countland:
             log transformed count matrix
         """
         # logarithmize as in scanpy.pp.log1p
-        print("Log transforming normalized counts...")
+        logging.info("Log transforming normalized counts...")
         self.log_counts = np.log(self.norm_counts + 1)
-        print("    done.")
+        logging.info("    done.")
 
     def _RescaleVariance(self):
         """
@@ -1073,11 +1073,11 @@ class countland:
             counts scaled to gene unit variance
         """
         # logarithmize as in scanpy.pp.log1p
-        print("Scaling transformed counts to gene unit variance...")
+        logging.info("Scaling transformed counts to gene unit variance...")
         self.scaled_counts = preprocessing.scale(
             self.log_counts, axis=0, with_mean=False
         )
-        print("    done.")
+        logging.info("    done.")
 
     def _Center(self):
         """
@@ -1090,6 +1090,6 @@ class countland:
             centers counts to zero
         """
         # logarithmize as in scanpy.pp.log1p
-        print("Centering counts...")
+        logging.info("Centering counts...")
         self.centered_counts = preprocessing.scale(self.log_counts, axis=0)
-        print("    done.")
+        logging.info("    done.")
