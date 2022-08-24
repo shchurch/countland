@@ -12,15 +12,21 @@ Please see our manuscript for more details:
 
 ### Installation for `python`
 
+`countland` is available with `pip`: https://pypi.org/project/countland/
+
 To prepare a `conda` environment and install `countland` (before first use):
 
     conda create -n countland -c conda-forge
     conda activate countland
-    pip install git+https://github.com/shchurch/countland.git#subdirectory=countland-py
+    pip install countland
 
 To activate the conda environment (before each use):
 
     conda activate countland
+
+The develompent version from in this repository can be installed using 
+
+    pip install git+https://github.com/shchurch/countland.git#subdirectory=countland-py
 
 ### Running the tutorial in `python`
 
@@ -34,7 +40,13 @@ Alternatively, [the `python` tutorial](./tutorials_and_vignettes/python_tutorial
 
 ### Installation for `R`
 
+`countland` is available from CRAN: https://CRAN.R-project.org/package=countland
+
 From an `R` prompt, run the following: 
+
+    install.packages("countland")
+
+Teh development version from this repository can be installed using 
 
     library(devtools)
     install_github("shchurch/countland", subdir="countland-R")
