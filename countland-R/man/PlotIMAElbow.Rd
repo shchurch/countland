@@ -2,7 +2,7 @@
 % Please edit documentation in R/countland_IMA.R
 \name{PlotIMAElbow}
 \alias{PlotIMAElbow}
-\title{Plot the difference between the observe and reconstructed count matrix using integer matrix approximation and a series of total features.}
+\title{Plot the difference between the observed and reconstructed count matrix using integer matrix approximation and a series of total features.}
 \usage{
 PlotIMAElbow(C, max_features, u_bounds, subsample = TRUE)
 }
@@ -15,6 +15,9 @@ PlotIMAElbow(C, max_features, u_bounds, subsample = TRUE)
 
 \item{subsample}{if TRUE, use subsampled counts (default), otherwise use counts}
 }
+\value{
+generates elbow plot for the difference between observed and reconstructed matrices as number of features increases
+}
 \description{
-Plot the difference between the observe and reconstructed count matrix using integer matrix approximation and a series of total features.
+Plot the difference between the observed and reconstructed count matrix using integer matrix approximation and a series of total features.
 }

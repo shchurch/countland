@@ -13,6 +13,9 @@ PlotGeneCounts(C, gene_indices, colors = color_palette)
 
 \item{colors}{color palette for ggplot2, default=palette of 11 colors}
 }
+\value{
+generates plot of gene count distributions
+}
 \description{
 Generate a strip plot for counts across selected genes
 }

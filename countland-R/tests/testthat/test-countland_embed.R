@@ -25,6 +25,7 @@ test_that("function ScikitManifoldSpectralEmbedding, returns correct values", {
 test_that("function Embed, returns embedding matrix of correct length", {
   C <- new("countland")
   C@dots <- dgC
+  C@verbose=TRUE
   C <- Embed(C,n_components=2)
 
   expect_length(C@embedding,6)

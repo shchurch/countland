@@ -109,6 +109,7 @@ ScoreGenes <- function(C,subsample=FALSE){
 #' @param gene_indices vector of gene index values
 #' @param colors color palette for ggplot2, default=palette of 11 colors
 #'
+#' @return generates plot of gene count distributions
 #' @export
 #' @examples
 #' gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)

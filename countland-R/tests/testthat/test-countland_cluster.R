@@ -5,6 +5,7 @@ mat <- rbind(c(0.01,0.01,0.01),
 test_that("function Cluster, returns correct values",{
   C <- new("countland")
   C@embedding <- mat
+  C@verbose=TRUE
   C <- Cluster(C,n_clusters=2)
   C@cluster_labels
 

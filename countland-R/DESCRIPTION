@@ -1,22 +1,26 @@
 Package: countland
-Title: analysis of biological count data, especially from single-cell RNAseq
-Version: 0.0.0.9000
+Title: Analysis of Biological Count Data, Especially from Single-Cell RNA-Seq
+Version: 0.1.1
 Authors@R: 
     person("Church", "Samuel H.", , "samuelhchurch@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-8451-103X"))
-Description: countland includes a set of functions for 
-    applying a restricted linear algebra to the analysis 
-    of count-based data. This tool is specifically designed 
-    to analyze count matrices from single cell RNA 
-    sequencing assays. The tool implement several 
-    count-based approaches for standard steps in scRNA-seq
-    analysis, including scoring genes and cells, comparing
-    cells and clustering, calculating differential 
-    gene expression, and several methods for rank reduction.
-    There are many opportunities for further
-    optimization that may prove useful in the anlaysis of
+Description: A set of functions for applying a 
+    restricted linear algebra to the analysis of 
+    count-based data. See the accompanying preprint
+    manuscript: "Normalizing need not be the norm:
+    count-based math for analyzing single-cell data"
+    Church et al (2022) <doi:10.1101/2022.06.01.494334>
+    This tool is specifically designed to analyze 
+    count matrices from single cell RNA sequencing 
+    assays. The tools implement several count-based
+    approaches for standard steps in single-cell 
+    RNA-seq analysis, including scoring genes and cells, 
+    comparing cells and clustering, calculating differential 
+    gene expression, and several methods for rank 
+    reduction. There are many opportunities for further
+    optimization that may prove useful in the analysis of
     other data. We provide the source code freely
-    available at https://github.com/shchurch/countland
+    available at <https://github.com/shchurch/countland>
     and encourage users and developers to fork the code for 
     their own purposes. 
 License: MIT + file LICENSE
@@ -36,10 +40,7 @@ Suggests:
     RSpectra, 
     matrixTests,
     rdist,
-    IMA,
     stats,
     Seurat,
     testthat (>= 3.0.0)
-Remotes:
-    shchurch/integer_matrix_approximation/IMA-R
 Config/testthat/edition: 3

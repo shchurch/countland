@@ -11,7 +11,7 @@ countland(m, remove_empty = TRUE, verbose = TRUE)
 
 \item{remove_empty}{filter out cells and genes with no observed counts (default=TRUE)}
 
-\item{verbose}{print statements (default=TRUE)}
+\item{verbose}{show stderr message statements (default=TRUE)}
 }
 \value{
 countland object

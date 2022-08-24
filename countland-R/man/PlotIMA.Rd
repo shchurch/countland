@@ -17,6 +17,9 @@ PlotIMA(C, x = 1, y = 2, colors = color_palette, subsample = TRUE)
 
 \item{subsample}{if TRUE, use subsampled counts (default), otherwise use counts}
 }
+\value{
+generates plot of cells using integer matrix approximation
+}
 \description{
 Plot cells using integer matrix approximation
 }

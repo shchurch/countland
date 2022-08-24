@@ -55,7 +55,7 @@ Subsample <- function(C,gene_counts=NA,cell_counts=NA){
         gene_total_counts <- sapply(gene_vectors,sum)
         above_threshold <- gene_total_counts > gene_counts
         gene_total_counts[above_threshold] <- gene_counts
-        print(paste0("subsampling ",sum(above_threshold)," genes to a max total counts of ",gene_counts))
+        if(C@verbose){message(paste0("subsampling ",sum(above_threshold)," genes to a max total counts of ",gene_counts))}
 
         # subsample genes
         new_gene_vectors <- lapply(seq_len(t_counts@Dim[[2]]),
@@ -83,7 +83,7 @@ Subsample <- function(C,gene_counts=NA,cell_counts=NA){
         if(cell_counts == "min") {
             cell_counts <- min(apply(counts,2,sum))
         }
-        print(paste0("subsampling all cells to a standard sequencing depth of ",cell_counts))
+        if(C@verbose){message(paste0("subsampling all cells to a standard sequencing depth of ",cell_counts))}
 
         # subsample cells
         cell_vectors <- listCols(counts)

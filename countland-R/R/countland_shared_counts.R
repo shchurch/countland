@@ -53,6 +53,7 @@ SharedCounts <- function(C,n_clusters,n_cells=100,subsample=TRUE){
 #' @param y gene cluster to plot on y-axis, integer (default=2)
 #' @param colors color palette for ggplot2, default=palette of 11 colors
 #'
+#' @return generates plot of cells using shared counts
 #' @export
 PlotSharedCounts <- function(C,x = 1, y = 2,colors=color_palette){
   loading <- C@sum_sharedcounts

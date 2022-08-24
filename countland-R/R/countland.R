@@ -34,6 +34,7 @@ NULL
 #' @slot log_counts A dgCMatrix of log transformed counts.
 #' @slot scaled_counts A dgCMatrix of counts scaled by gene unit variance.
 #' @slot centered_counts A dgCMatrix of counts centered at zero.
+#' @slot verbose A T/F object for suppressing messages
 #'
 #' @export
 setClass("countland", slots=list(counts="dgCMatrix",
@@ -61,14 +62,15 @@ setClass("countland", slots=list(counts="dgCMatrix",
                                  norm_counts="dgCMatrix",
                                  log_counts="dgCMatrix",
                                  scaled_counts="dgCMatrix",
-                                 centered_counts="dgCMatrix")
+                                 centered_counts="dgCMatrix",
+                                 verbose="logical")
 )
 
 #' Initialize a countland object from a dgCMatrix
 #'
 #' @param m A matrix of counts (dense or sparse)
 #' @param remove_empty filter out cells and genes with no observed counts (default=TRUE)
-#' @param verbose print statements (default=TRUE)
+#' @param verbose show stderr message statements (default=TRUE)
 #'
 #' @return countland object
 #' @export
@@ -87,30 +89,23 @@ countland <- function(m,remove_empty=TRUE,verbose=TRUE){
     C@names_genes <- C@counts@Dimnames[[1]]
     C@names_cells <- C@counts@Dimnames[[2]]
 
-    print("countland object")
+    C@verbose=verbose
+    if(C@verbose){message("countland object")}
     if(remove_empty==TRUE){
         C <- RemoveEmpty(C)
     }
-    print(paste0("the count matrix has ",nrow(C@counts)," genes (rows)"))
-    print(paste0("    and ",ncol(C@counts)," cells (columns)"))
-    print(paste0("the fraction of entries that are nonzero is ",
-        round(Matrix::nnzero(C@counts)/length(C@counts),4)))
+    if(C@verbose){
+        message(paste0("the count matrix has ",nrow(C@counts)," genes (rows)"))
+        message(paste0("    and ",ncol(C@counts)," cells (columns)"))
+        message(paste0("the fraction of entries that are nonzero is ",
+            round(Matrix::nnzero(C@counts)/length(C@counts),4)))
+    }
 
     C@raw_counts <- C@counts
     C@raw_names_genes <- C@names_genes
     C@raw_names_cells <- C@names_cells
 
     return(C)
-}
-
-#' Restore count matrix to original state
-#'
-#' @param C countland object
-#'
-#' @return countland object
-PrintGeneNumber <- function(C){
-    print(paste0("new number of genes: ",nrow(C@counts)))
-    print(paste0("new number of cells: ",ncol(C@counts)))
 }
 
 #' Internal function to remove empty columns and rows
@@ -126,7 +121,7 @@ RemoveEmpty <- function(C){
     C@names_genes <- C@names_genes[gene_indices]
     C@counts <- C@counts[,cell_indices]
     C@names_cells <- C@names_cells[cell_indices]
-    print("after removing empty cells and genes,")
+    if(C@verbose){message("after removing empty cells and genes")}
 
     return(C)
 }

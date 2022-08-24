@@ -11,6 +11,9 @@ PlotEmbedding(C, colors = color_palette)
 
 \item{colors}{color palette for ggplot2, default=palette of 11 colors}
 }
+\value{
+generates plot of cells in two spectral embedding dimensions
+}
 \description{
 Plot cells using spectral embedding of dot products.
 }

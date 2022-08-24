@@ -9,6 +9,9 @@ PlotEigengap(C)
 \arguments{
 \item{C}{countland object}
 }
+\value{
+generates plot of eigenvalues by number of components
+}
 \description{
 Plots eigenvalues to investigate the optimal number of clusters
 }

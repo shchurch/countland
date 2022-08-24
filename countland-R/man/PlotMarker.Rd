@@ -13,6 +13,9 @@ PlotMarker(C, gene_index, colors = color_palette)
 
 \item{colors}{color palette for ggplot2, default=palette of 11 colors}
 }
+\value{
+generates plot of cells with spectral embedding, colored by marker gene counts
+}
 \description{
 Plot cell using spectral embedding and display counts in a given gene.
 }

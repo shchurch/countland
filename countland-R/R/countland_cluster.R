@@ -17,7 +17,7 @@ color_palette <- c("#8c564b", "#9467bd", "#2ca02c", "#e377c2", "#d62728", "#17be
 #' C <- Cluster(C,n_clusters=3)
 Cluster <- function(C,n_clusters,n_components=NULL){
 
-  print("Performing spectral clustering on dot products...")
+  if(C@verbose){message("Performing spectral clustering on dot products...")}
 
   stopifnot("embedding missing; run Embed() first"= length(C@embedding) > 0)
 
@@ -38,7 +38,7 @@ Cluster <- function(C,n_clusters,n_components=NULL){
 
   clust <- kmeans(E,n_clusters,nstart=10,iter.max=300,algorithm="Lloyd")
   C@cluster_labels <- clust$cluster
-  print("    done.")
+  if(C@verbose){message("    done.")}
 
   return(C)
 }
@@ -48,6 +48,7 @@ Cluster <- function(C,n_clusters,n_components=NULL){
 #' @param C countland object
 #' @param colors color palette for ggplot2, default=palette of 11 colors
 #'
+#' @return generates plot of cells in two spectral embedding dimensions
 #' @export
 #' @examples
 #' gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)

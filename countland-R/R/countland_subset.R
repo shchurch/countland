@@ -1,3 +1,13 @@
+#' Restore count matrix to original state
+#'
+#' @param C countland object
+#'
+#' @return countland object
+PrintGeneNumber <- function(C){
+  message(paste0("new number of genes: ",nrow(C@counts)))
+  message(paste0("new number of cells: ",ncol(C@counts)))
+}
+
 #' Subsets genes using a vector of gene indices
 #'
 #' @param C  countland object
@@ -16,11 +26,11 @@ SubsetGenes <- function(C,gene_indices,remove_empty=TRUE){
   C@names_genes <- C@names_genes[gene_indices]
 
   if(remove_empty==TRUE){
-    print("after subsetting and removing empty cells and genes,")
+    if(C@verbose){message("after subsetting and removing empty cells and genes,")}
     C <- RemoveEmpty(C)
-    PrintGeneNumber(C)
+    if(C@verbose){PrintGeneNumber(C)}
   } else {
-    PrintGeneNumber(C)
+    if(C@verbose){PrintGeneNumber(C)}
   }
 
   return(C)
@@ -43,11 +53,11 @@ SubsetCells <- function(C,cell_indices,remove_empty=TRUE){
   C@counts <- C@counts[,cell_indices]
   C@names_cells <- C@names_cells[cell_indices]
   if(remove_empty==TRUE){
-    print("after subsetting and removing empty cells and genes,")
+    if(C@verbose){message("after subsetting and removing empty cells and genes,")}
     C <- RemoveEmpty(C)
-    PrintGeneNumber(C)
+    if(C@verbose){PrintGeneNumber(C)}
   } else {
-    PrintGeneNumber(C)
+    if(C@verbose){PrintGeneNumber(C)}
   }
 
   return(C)
@@ -71,7 +81,7 @@ RestoreCounts <- function(C){
   C@counts <- C@raw_counts
   C@names_genes <- C@counts@Dimnames[[1]]
   C@names_cells <- C@counts@Dimnames[[2]]
-  PrintGeneNumber(C)
+  if(C@verbose){PrintGeneNumber(C)}
 
   return(C)
 }

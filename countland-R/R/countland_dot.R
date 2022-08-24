@@ -21,9 +21,9 @@ Dot <- function(C,subsample=FALSE){
     }
   }
 
-  print("Calculating dot products between rows...")
+  if(C@verbose){message("Calculating dot products between rows...")}
   C@dots <- Matrix::t(counts) %*% counts
-  print("    done.")
+  if(C@verbose){message("    done.")}
 
   return(C)
 }

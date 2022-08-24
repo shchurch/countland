@@ -47,7 +47,7 @@ ScikitManifoldSpectralEmbedding <- function(A,n_components){
 #' C <- Embed(C,n_components=5)
 Embed <- function(C,n_components=10){
 
-  print("Performing spectral embedding on dot products...")
+  if(C@verbose){message("Performing spectral embedding on dot products...")}
 
   stopifnot("dot product similarity matrix missing; run Dots() first"= length(C@dots) > 0)
 
@@ -59,7 +59,7 @@ Embed <- function(C,n_components=10){
   C@eigenvals <- embed[[1]]
   C@embedding <- embed[[2]]
 
-  print("    done.")
+  if(C@verbose){message("    done.")}
 
   return(C)
 }
@@ -68,6 +68,7 @@ Embed <- function(C,n_components=10){
 #'
 #' @param C countland object
 #'
+#' @return generates plot of eigenvalues by number of components
 #' @export
 #' @examples
 #' gold_path <- system.file("testdata", package = "countland", mustWork = TRUE)

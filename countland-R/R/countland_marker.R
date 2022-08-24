@@ -69,6 +69,7 @@ RankMarkerGenes <- function(C,method='prop-zero',subsample=FALSE){
 #' @param gene_index index value for gene to visualize
 #' @param colors color palette for ggplot2, default=palette of 11 colors
 #'
+#' @return generates plot of cells with spectral embedding, colored by marker gene counts
 #' @export
 PlotMarker <- function(C,gene_index,colors=color_palette){
 

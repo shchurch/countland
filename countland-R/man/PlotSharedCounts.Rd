@@ -15,6 +15,9 @@ PlotSharedCounts(C, x = 1, y = 2, colors = color_palette)
 
 \item{colors}{color palette for ggplot2, default=palette of 11 colors}
 }
+\value{
+generates plot of cells using shared counts
+}
 \description{
 Plot cells using matrix of counts summed by clusters of genes.
 }

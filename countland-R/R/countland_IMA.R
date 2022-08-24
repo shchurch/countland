@@ -47,6 +47,7 @@ RunIMA <- function(C,features,u_bounds,l_bounds=c(0,0),maxiter=1000000,stop_crit
 #' @param subsample if TRUE, use subsampled counts (default), otherwise use counts
 #' @param colors color palette for ggplot2, default=palette of 11 colors
 #'
+#' @return generates plot of cells using integer matrix approximation
 #' @export
 PlotIMA <- function(C,x = 1, y = 2, colors=color_palette, subsample=TRUE){
 	if(subsample==FALSE){
@@ -70,13 +71,14 @@ PlotIMA <- function(C,x = 1, y = 2, colors=color_palette, subsample=TRUE){
     theme(legend.position = "None")
 }
 
-#' Plot the difference between the observe and reconstructed count matrix using integer matrix approximation and a series of total features.
+#' Plot the difference between the observed and reconstructed count matrix using integer matrix approximation and a series of total features.
 #'
 #' @param C countland object
 #' @param max_features maximum number of features to assess, integer
 #' @param u_bounds upper bounds for U and V matrices, vector of length 2
 #' @param subsample if TRUE, use subsampled counts (default), otherwise use counts
 #'
+#' @return generates elbow plot for the difference between observed and reconstructed matrices as number of features increases
 #' @export
 PlotIMAElbow <- function(C,max_features,u_bounds,subsample=TRUE){
 	if(subsample==FALSE){

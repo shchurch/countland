@@ -61,5 +61,7 @@ An S4 class to represent a countland object
 \item{\code{scaled_counts}}{A dgCMatrix of counts scaled by gene unit variance.}
 
 \item{\code{centered_counts}}{A dgCMatrix of counts centered at zero.}
+
+\item{\code{verbose}}{A T/F object for suppressing messages}
 }}
 
