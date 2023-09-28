@@ -1,0 +1,380 @@
+---
+title: "countland: large sponge dataset"
+output: rmarkdown::github_document
+vignette: >
+  %\VignetteIndexEntry{countland: pig and placozoa}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+### Samuel H. Church
+
+This document applies `countland` to the analysis of real-world scRNA-seq data.
+
+The following packages are required to run the analysis:
+
+```{r load,results=F,message=F}
+library(countland)
+library(Seurat)
+library(glmpca)
+
+library(knitr)
+library(dplyr)
+library(gridExtra)
+
+library(ggplot2)
+library(viridis)
+color_palette <- c("#8c564b", "#9467bd", "#2ca02c", "#e377c2", "#d62728", "#17becf", "#bcbd22", "#ff7f0e", "#7f7f7f", "#1f77b4")
+theme_set(theme_classic())
+```
+
+## Get the data
+
+Here we apply countland to a dataset from a sponge (_Spongilla lacustris_) provided by [Musser _et al_ (2021)](https://www.science.org/doi/full/10.1126/science.abj2949).
+
+We set up two matrices, one with all cells, and one with only differentiated cells.
+
+```{r data}
+sponge.data <- Seurat::Read10X(data.dir = "../data/sponge_all/")
+sponge_diff.data <- Seurat::Read10X(data.dir = "../data/sponge_all_but_arch_or_trans/")
+```
+
+## Run countland
+
+We then apply countland. Here we modify the standard countland workflow to filter the same genes and cells that are filtered with Seurat, standard workflow. We set the number of clusters to published number of cell labels.
+
+```{r run,results=F}
+run_filter_countland <- function(mtx){
+  C <- countland(mtx,remove_empty = TRUE)
+  
+  C <- ScoreCells(C)
+  cell_filt <- C@cell_scores[C@cell_scores$n_features >= 200,]$names
+  C <- SubsetCells(C,which(C@names_cells %in% cell_filt),remove_empty=FALSE)
+  
+  C <- ScoreGenes(C,subsample=FALSE)
+  gene_filt <- C@gene_scores[C@gene_scores$n_cells >= 3,]$names
+  C <- SubsetGenes(C,which(C@names_genes %in% gene_filt),remove_empty=FALSE)
+  
+  return(C)
+}
+
+sponge_C <- run_filter_countland(sponge.data)
+sponge_diff_C <- run_filter_countland(sponge_diff.data)
+
+run_countland <- function(C){
+  real_labels <- sapply(strsplit(C@names_cells, "_"), function(v){return(v[2])})
+  n_clusters <- length(unique(real_labels))
+
+  C <- Dot(C,subsample=FALSE)
+  C <- Embed(C,n_components=n_clusters)
+  C <- Cluster(C, n_clusters=n_clusters)
+}
+
+
+# measure run time using countland
+start = Sys.time()
+sponge_C <- run_countland(sponge_C)
+C_time <- Sys.time()-start
+
+sponge_diff_C <- run_countland(sponge_diff_C)
+```
+
+## Run Seurat
+
+We first apply Seurat using the default approach as listed in [this tutorial](https://satijalab.org/seurat/articles/pbmc3k_tutorial.html).
+
+```{r seurat-function}
+run_seurat <- function(mtx){
+  obj <- CreateSeuratObject(counts=mtx, project="spo", min.cells = 3, min.features = 200)
+  obj <- NormalizeData(obj, normalization.method = "LogNormalize", scale.factor = 10000)
+  all.genes <- rownames(obj)
+  obj <- ScaleData(obj, features=all.genes)
+  obj <- FindVariableFeatures(object=obj, mean.function = ExpMean, dispersion.function = LogVMR)
+  obj <- RunPCA(obj, features=VariableFeatures(obj), ndims.print = 1:50, npcs = 100)
+  obj <- FindNeighbors(obj, dims = 1:40)
+  obj <- FindClusters(obj)
+  obj <- RunTSNE(object = obj, dims = 1:40)
+  return(obj)
+}
+
+# measure run time with Seurat
+start = Sys.time()
+sponge_obj <- run_seurat(sponge.data)
+seurat_time <- Sys.time()-start
+
+sponge_diff_obj <- run_seurat(sponge_diff.data)
+```
+
+## Run GLM-PCA
+
+We also visualize the data using GLM-PCA. This analysis can take a long time.
+
+```{r glmpca}
+run_glmpca <- function(counts){
+  return(glmpca(as(counts,"matrix"),2))
+}
+
+sponge_glm <- run_glmpca(sponge_C@counts)
+sponge_diff_glm <- run_glmpca(sponge_diff_C@counts)
+
+```
+
+## Compare computational time.
+
+```{r time-table}
+time_table <- format(data.frame(C_time, seurat_time, glm_time));colnames(time_table) <- c("countland","Seurat")
+kable(t(time_table),caption="computational time",col.names="comp. time")
+
+n_cells <- length(sponge_C@names_cells)
+time_table <- cbind(n_cells,time_table);colnames(time_table) <- c("num.cells","countland","Seurat")
+write.table(time_table,file="sponge_time_table.tsv",sep="\t",row.names=F)
+```
+
+## Plot the results.
+
+```{r plot-full, fig.height=4, fig.width=8}
+mtx <- sponge.data
+obj <- sponge_obj
+glm <- sponge_glm
+C <- sponge_C
+
+seurat_loading_1 <- obj@reductions$tsne@cell.embeddings[,1]
+seurat_loading_2 <- obj@reductions$tsne@cell.embeddings[,2]
+
+glm_loading_1 <- glm$factors[,1]
+glm_loading_2 <- glm$factors[,2]
+
+countland_loading_1 <- C@embedding[,5]
+countland_loading_2 <- C@embedding[,7]
+
+total_counts <- C@cell_scores$total_counts
+n_features_0 <- apply(C@counts,2,function(x){sum(x==0)})
+
+pub_labels <- sapply(strsplit(colnames(mtx), "_"), function(v){return(v[2])})
+n_clusters <- length(unique(pub_labels))
+countland_clusters <- as.character(C@cluster_labels)
+
+sgdf <- data.frame(seurat_loading_1,seurat_loading_2,
+  countland_loading_1,countland_loading_2,
+  pub_labels,countland_clusters,total_counts,n_features_0)
+
+get_cluster_comb_df <- function(cl1,cl2){
+  return(data.frame('source'=cl1,'target'=cl2) %>% group_by(source,target) %>% count())
+}
+# align colors
+r <- get_cluster_comb_df(pub_labels,countland_clusters)
+# arrange by cluster composition
+r1 <- r %>% group_by(source) %>% arrange(desc(n)) %>% slice(1) %>% ungroup() %>% mutate(color = viridis::turbo(n=n()))
+# source colors
+s <- r1$color;names(s) <- r1$source
+# target colors
+t <- r1 %>% distinct(target,.keep_all=T) %>% pull(color);names(t) <- r1 %>% distinct(target,.keep_all=T) %>% pull(target)
+# fill in colors for rest of target clusters
+r2 <- r %>% filter(!target %in% names(t)) %>% ungroup() %>% distinct(target) %>% mutate(color = gray.colors(n=n()))
+t2 <- r2$color;names(t2) <- r2$target
+t <- c(t,t2)
+
+
+g1 <- ggplot(sgdf,aes(x = seurat_loading_1, y = seurat_loading_2, color = pub_labels)) + 
+  geom_point(size=0.1) +
+  scale_color_manual(values = s) + 
+  ggtitle("tSNE - published labels") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank()) + 
+  theme(legend.position="none")
+
+g2 <- ggplot(sgdf,aes(x = seurat_loading_1, y = seurat_loading_2, color = countland_clusters)) + 
+  geom_point(size=0.1) +
+  scale_color_manual(values = t) + 
+  ggtitle("tSNE - countland clusters") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank()) + guides(colour = guide_legend(override.aes = list(size=6))) + 
+  theme(legend.position="none")
+
+g3 <- ggplot(sgdf,aes(x = glm_loading_1, y = glm_loading_2, color = pub_labels)) + 
+  geom_point(size=0.1) +
+  scale_color_manual(values = s) + 
+  ggtitle("GLMPCA - published labels") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank()) + 
+  theme(legend.position="none")
+
+g4 <- ggplot(sgdf,aes(x = glm_loading_1, y = glm_loading_2, color = countland_clusters)) + 
+  geom_point(size=0.1) +
+  scale_color_manual(values = t) + 
+  ggtitle("GLMPCA - countland clusters") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank()) + 
+  theme(legend.position="none")
+
+g5 <- ggplot(sgdf,aes(x = countland_loading_1, y = countland_loading_2, color = pub_labels)) + 
+  geom_point(size=0.1) +
+  scale_color_manual(values = s) + 
+  ggtitle("spectral - published labels") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank()) + 
+  theme(legend.position="none")
+
+g6 <- ggplot(sgdf,aes(x = countland_loading_1, y = countland_loading_2, color = countland_clusters)) + 
+  geom_point(size=0.1) +
+  scale_color_manual(values = t) + 
+  ggtitle("spectral - countland clusters") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank()) + 
+  theme(legend.position="none")
+
+pdf(file="../../figures_and_panels/panel_sponge_full.pdf",width=8,height=6)
+grid.arrange(g1,g3,g5,g2,g4,g6,nrow=2)
+dev.off()
+
+gg1 <- ggplot(sgdf,aes(x = seurat_loading_1, y = seurat_loading_2, color = total_counts)) + 
+  geom_point(size=0.1) +
+  scale_color_manual(values = s) + 
+  ggtitle("tSNE - total counts") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank()) + 
+  theme(legend.position="none")
+
+gg2 <- ggplot(sgdf,aes(x = seurat_loading_1, y = seurat_loading_2, color = n_features_0)) + 
+  geom_point(size=0.1) +
+  scale_color_manual(values = t) + 
+  ggtitle("tSNE - number of zeros") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank()) + guides(colour = guide_legend(override.aes = list(size=6))) + 
+  theme(legend.position="none")
+
+gg3 <- ggplot(sgdf,aes(x = glm_loading_1, y = glm_loading_2, color = total_counts)) + 
+  geom_point(size=0.1) +
+  scale_color_manual(values = s) + 
+  ggtitle("GLMPCA - total counts") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank()) + 
+  theme(legend.position="none")
+
+gg4 <- ggplot(sgdf,aes(x = glm_loading_1, y = glm_loading_2, color = n_features_0)) + 
+  geom_point(size=0.1) +
+  scale_color_manual(values = t) + 
+  ggtitle("GLMPCA - number of zeros") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank()) + 
+  theme(legend.position="none")
+
+gg5 <- ggplot(sgdf,aes(x = countland_loading_1, y = countland_loading_2, color = total_counts)) + 
+  geom_point(size=0.1) +
+  scale_color_manual(values = s) + 
+  ggtitle("spectral - total counts") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank()) + 
+  theme(legend.position="none")
+
+gg6 <- ggplot(sgdf,aes(x = countland_loading_1, y = countland_loading_2, color = n_features_0)) + 
+  geom_point(size=0.1) +
+  scale_color_manual(values = t) + 
+  ggtitle("spectral - number of zeros") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank()) + 
+  theme(legend.position="none")
+
+pdf(file="../../figures_and_panels/panel_sponge_full.pdf",width=10,height=6)
+grid.arrange(g2,gg1,gg2,g4,gg3,gg4,g6,gg5,gg6,nrow=3)
+dev.off()
+
+pub_legend <- ggplot(sgdf,aes(x = seurat_loading_1, y = seurat_loading_2, color = pub_labels)) + geom_point() + 
+  scale_color_manual(values = s) + 
+  guides(colour = guide_legend(override.aes = list(size=5)))
+count_legend <- ggplot(sgdf,aes(x = seurat_loading_1, y = seurat_loading_2, color = countland_clusters)) + geom_point() + 
+  scale_color_manual(values = t) + 
+  guides(colour = guide_legend(override.aes = list(size=5)))
+pdf(file="../../figures_and_panels/panel_legend_full.pdf",width=4,height=8)
+grid.arrange(pub_legend,count_legend,nrow=2)
+dev.off()
+```
+
+```{r plot-differentiated, fig.height=4, fig.width=8}
+mtx <- sponge_diff.data
+obj <- sponge_diff_obj
+glm <- sponge_diff_glm
+C <- sponge_diff_C
+
+seurat_loading_1 <- obj@reductions$tsne@cell.embeddings[,1]
+seurat_loading_2 <- obj@reductions$tsne@cell.embeddings[,2]
+
+glm_loading_1 <- glm$factors[,1]
+glm_loading_2 <- glm$factors[,2]
+
+countland_loading_1 <- C@embedding[,2]
+countland_loading_2 <- C@embedding[,3]
+
+pub_labels <- sapply(strsplit(colnames(mtx), "_"), function(v){return(v[2])})
+n_clusters <- length(unique(pub_labels))
+countland_clusters <- as.character(C@cluster_labels)
+
+sgdf <- data.frame(seurat_loading_1,seurat_loading_2,
+  countland_loading_1,countland_loading_2,
+  pub_labels,countland_clusters)
+
+# align colors
+r <- get_cluster_comb_df(pub_labels,countland_clusters)
+# arrange by cluster composition
+r1 <- r %>% group_by(source) %>% arrange(desc(n)) %>% slice(1) %>% ungroup() %>% arrange(desc(source)) %>% mutate(color = rev(viridis::turbo(n=n())))
+# source colors
+s <- r1$color;names(s) <- r1$source
+# target colors
+t <- r1 %>% distinct(target,.keep_all=T) %>% pull(color);names(t) <- r1 %>% distinct(target,.keep_all=T) %>% pull(target)
+# fill in colors for rest of target clusters
+r2 <- r %>% filter(!target %in% names(t)) %>% ungroup() %>% distinct(target) %>% mutate(color = gray.colors(n=n()))
+t2 <- r2$color;names(t2) <- r2$target
+t <- c(t,t2)
+
+g1 <- ggplot(sgdf,aes(x = seurat_loading_1, y = seurat_loading_2, color = pub_labels)) + 
+  geom_point(size=0.25) +
+  scale_color_manual(values = s) + 
+  ggtitle("tSNE - published labels") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank()) + 
+  theme(legend.position="none")
+
+g2 <- ggplot(sgdf,aes(x = seurat_loading_1, y = seurat_loading_2, color = countland_clusters)) + 
+  geom_point(size=0.25) +
+  scale_color_manual(values = t) + 
+  ggtitle("tSNE - countland clusters") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank()) + 
+  theme(legend.position="none")
+
+g3 <- ggplot(sgdf,aes(x = glm_loading_1, y = glm_loading_2, color = pub_labels)) + 
+  geom_point(size=0.25) +
+  scale_color_manual(values = s) + 
+  ggtitle("GLMPCA - published labels") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank()) + 
+  theme(legend.position="none")
+
+g4 <- ggplot(sgdf,aes(x = glm_loading_1, y = glm_loading_2, color = countland_clusters)) + 
+  geom_point(size=0.25) +
+  scale_color_manual(values = t) + 
+  ggtitle("GLMPCA - countland clusters") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank()) + 
+  theme(legend.position="none")
+
+g5 <- ggplot(sgdf,aes(x = countland_loading_1, y = countland_loading_2, color = pub_labels)) + 
+  geom_point(size=0.25) +
+  scale_color_manual(values = s) + 
+  ggtitle("spectral - published labels") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank()) + 
+  theme(legend.position="none")
+
+g6 <- ggplot(sgdf,aes(x = countland_loading_1, y = countland_loading_2, color = countland_clusters)) + 
+  geom_point(size=0.25) +
+  scale_color_manual(values = t) + 
+  ggtitle("spectral - countland clusters") + 
+  theme(axis.ticks = element_blank(),axis.text = element_blank()) + 
+  theme(legend.position="none")
+
+pdf(file="../../figures_and_panels/panel_sponge_diff.pdf",width=8,height=6)
+grid.arrange(g1,g3,g5,g2,g4,g6,nrow=2)
+dev.off()
+
+pub_legend <- ggplot(sgdf,aes(x = seurat_loading_1, y = seurat_loading_2, color = pub_labels)) + geom_point() + 
+  scale_color_manual(values = s) + 
+  guides(colour = guide_legend(override.aes = list(size=5), reverse=T))
+count_legend <- ggplot(sgdf,aes(x = seurat_loading_1, y = seurat_loading_2, color = countland_clusters)) + geom_point() + 
+  scale_color_manual(values = t) + 
+  guides(colour = guide_legend(override.aes = list(size=5), reverse=T))
+pdf(file="../../figures_and_panels/panel_legend_diff.pdf",width=4,height=10)
+grid.arrange(pub_legend,count_legend,nrow=2)
+dev.off()
+```
+

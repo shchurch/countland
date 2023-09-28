@@ -25,7 +25,7 @@ set.seed(84095)
 
 ## Get the data
 
-We have used the Gold standard dataset provided by [Freytag _et al_ (2018)](10.12688/f1000research.15809.2). This data consists of ~1000 cells that have ground truth labels corresponding to three human lung cell lines.
+We used the Gold standard dataset provided by [Freytag _et al_ (2018)](10.12688/f1000research.15809.2). This data consists of ~1000 cells that have ground truth labels corresponding to three human lung cell lines.
 
 ```{r data}
 gold.data <- Read10X(data.dir = "../data/Gold_Freytag2018/")
@@ -70,34 +70,50 @@ run_seurat <- function(counts,resolution,find_variable){
 }
 ```
 
-```{r seurat-gold,results=F,message=F,warning=F,warning=F}
+```{r seurat-gold,results=F,message=F,warning=F}
 seurat_gold_default <- run_seurat(gold.data,0.8,find_variable=T) # default resolution is 0.8
 seurat_gold <- run_seurat(gold.data,0.01,find_variable=T)
+``` 
+
+As a control, we also run a PCA and k-means clustering on raw counts.
+
+```{r PCA-gold,results=F,message=F,warning=F}
+# transpose the data matrix for PCA
+gdata <- t(as.matrix(gold.data))
+
+# run the PCA
+pca <- prcomp(gdata,center=F,scale=F)
+comp <- data.frame(pca$x[,2:10])
+
+# calculate clusters with k-means
+k3 = kmeans(comp, centers = 3, nstart=25, iter.max=1000)
 ```
 
-We evaluate dthe accuracy of results against ground-truth cell labels using three measures: the adjusted rand index, the normalized mutual information, and cluster homogeneity.
-
+We evaluated the accuracy of results against ground-truth cell labels using three measures: the adjusted rand index, the normalized mutual information, and cluster homogeneity.
 
 ```{r compare-results-gold, results=T}
 # get ground-truth cell labels
 real_labels <- gsub("_.*","",C@names_cells)
+
 # get results
 countland_labels <- as.character(C@cluster_labels)
 seurat_default_labels <- as.character(seurat_gold_default@meta.data$seurat_clusters)
 seurat_labels <- as.character(seurat_gold@meta.data$seurat_clusters)
-all_labels <- list(countland_labels,seurat_default_labels,seurat_labels)
+kmeans_labels <- as.character(k3$clust)
+all_labels <- list(kmeans_labels,countland_labels,seurat_default_labels,seurat_labels)
 
+# calculate scores
 rand <- sapply(all_labels,function(x){ARI(real_labels,x)})
 nmi <- sapply(all_labels,function(x){NMI(real_labels,x)})
 homog <- sapply(all_labels,function(x){homogeneity(real_labels,x)})
 
+# set up table of results
 gold_results <- round(data.frame('adjusted rand index' = rand, 'norm. mutual info.' = nmi, "homogeneity" = homog, check.names=F),3)
-rownames(gold_results) <- c("countland", "Seurat, default resolution=0.8", "Seurat, resolution=0.01")
-kable(t(gold_results),caption="cluster evaluation")
+rownames(gold_results) <- c("naive PCA, k-means", "countland", "Seurat, default resolution=0.8", "Seurat, resolution=0.01")
+kable(t(gold_results),caption="cluster evaluation on Gold standard data")
 ```
 
 Here we visualize clustering results using spectral embedding, and coloring points according to the ground truth cell labels and the clusters identified with `countland`.
-
 
 ```{r colors}
 get_cluster_colors <- function(obj){
@@ -229,23 +245,18 @@ nmi <- sapply(res,function(x){NMI(real_labels,x@cluster_labels)})
 
 sparse_components_results <- round(data.frame('adjusted rand index' = rand, 'norm. mutual info.' = nmi, "homogeneity" = homog, check.names=F),3)
 rownames(sparse_components_results) <- c("2 components", "3 components", "5 components", "10 components")
-kable(t(sparse_components_results),caption="cluster evaluation with more sparse data")
+kable(t(sparse_components_results),caption="cluster evaluation with more sparse data, differing components")
 ```
 
 Then we compared the performance of `countland` and `Seurat` on this more sparse dataset.
 
 ```{r seurat-sparse,results=F,message=F,warning=F}
-Z <- countland(sparse_gold)
-Z <- Dot(Z)
-Z <- Embed(Z)
-Z <- Cluster(Z,n_clusters=3,n_components=10)
-
 seurat_sparse <- run_seurat(sparse_gold,0.01,find_variable=T)
 ```
 
 ```{r compare-sparse, results=T}
 # get results
-countland_labels <- as.character(Z@cluster_labels)
+countland_labels <- as.character(Z_3_10@cluster_labels)
 seurat_labels <- as.character(seurat_sparse@meta.data$seurat_clusters)
 all_labels <- list(countland_labels,seurat_labels)
 
@@ -255,15 +266,15 @@ homog <- sapply(all_labels,function(x){homogeneity(real_labels,x)})
 
 sparse_results <- round(data.frame('adjusted rand index' = rand, 'norm. mutual info.' = nmi, "homogeneity" = homog, check.names=F),3)
 rownames(sparse_results) <- c("countland, raw counts", "Seurat, res. 0.01")
-kable(t(sparse_results),caption="cluster evaluation")
+kable(t(sparse_results),caption="cluster evaluation with more sparse data, countland vs Seurat")
 ```
 
 Here we visualize the results.
 
 ```{r plot-spectral-sparse,fig.height=4,fig.width=7,fig.align="center"}
-cols <- get_cluster_colors(Z)
+cols <- get_cluster_colors(Z_3_10)
 
-u1 <- Z@embedding[,2];u2 <- Z@embedding[,3]
+u1 <- Z_3_10@embedding[,2];u2 <- Z_3_10@embedding[,3]
 gdf <- data.frame("component_1" = u1, "component_2" = u2, "real_label" = real_labels, "countland_clusters" = countland_labels)
 
 g1 <- ggplot(gdf,aes(x = component_1, y = component_2, color = real_label)) + 
@@ -333,7 +344,7 @@ homog <- sapply(all_labels,function(x){homogeneity(real_labels,x)})
 
 cell_het_results <- round(data.frame('adjusted rand index' = rand, 'norm. mutual info.' = nmi, "homogeneity" = homog, check.names=F),3)
 rownames(cell_het_results) <- c("countland, raw counts", "countland, subsampled cells", "Seurat, res. 0.01")
-kable(t(cell_het_results),caption="cluster evaluation")
+kable(t(cell_het_results),caption="cluster evaluation with more heterogeneity in depth")
 ```
 
 ```{r plot-spectral-het,fig.height=4,fig.width=10,fig.align="center"}
@@ -435,7 +446,7 @@ homog <- sapply(all_labels,function(x){homogeneity(real_labels,x)})
 
 gene_het_results <- round(data.frame('adjusted rand index' = rand, 'norm. mutual info.' = nmi, "homogeneity" = homog, check.names=F),3)
 rownames(gene_het_results) <- c("countland, raw counts", "countland, subsampled genes", "Seurat, res. 0.01")
-kable(t(gene_het_results),caption="cluster evaluation")
+kable(t(gene_het_results),caption="cluster evaluation with more heterogenetiy in gene variance")
 ```
 
 ```{r plot-spectral-gene,fig.height=4,fig.width=9,fig.align="center"}
@@ -460,6 +471,8 @@ g2 <- ggplot(gdf,aes(x = component_1, y = component_2, color = countland_cluster
 
 grid.arrange(g1,g2,ncol=2)
 ```
+
+Here we save the results for reporting in the manuscript.
 
 ```{r save, include=F}
 

@@ -1,0 +1,47 @@
+---
+title: "Supplemental information: Normalizing need not be the norm"
+output:
+ #word_document: default
+ #bookdown::word_document2: default
+ bookdown::pdf_document2:
+    keep_tex: true
+    latex_engine: pdflatex
+ #bookdown::html_document2: default
+toc: false
+csl: nature_genetics.csl
+link-citations: yes
+bibliography: countland.bib
+---
+
+```{r global options, include = FALSE}
+knitr::opts_chunk$set(echo=FALSE, include = FALSE, warning=FALSE, message=FALSE, cache=FALSE)
+```
+
+# Supplemental Figures
+
+![**Analyzing the full dataset from the sponge _Spongilla lacustris_ using `countland`.** 10,106 cells are visualized using three embeddings: tSNE (A, D), as originally reported in Musser _et al_., 2021[@musser2021profiling], GLM-PCA (B, E), and spectral embedding (C, F). Points are colored according to the originally published cell labels (A-C) or by the results of spectral clustering (D-F). Colors between published labels and `countland` clusters were matched based on composition; `countland` clusters without a corresponding published label are colored in grayscale. Cell labels are as follows: amoebocytes (Amb), apendopinacocytes (apnPin), apopylar cells (Apo), archaeocytes (Arc), basopinacocytes (basPin), choanoblasts (Chb), choanocytes (Cho), granulocytes (Grl), incurrent pinacocytes (incPin), lophocytes (Lph), mesocytes (Mes), metabolocytes (Met), myopeptidocytes (Myp), neuroid cells (Nrd), sclerocytes (Scl), sclerophorocytes (Scp), and transitional cells (numbered published cell labels).](figures_and_panels/supp_figure_sponge_V1-01.png)
+
+![**Visualizing Gold Standard results by clusters, total counts, and number of zero values.** A, `countland` recoveres clusters corresponding to ground truth cell populations, and not total counts or number of zeros, for the Gold standard dataset[@freytag2018comparison]. B-F We modified and reanalyzed this dataset, as described in the resuts: B, a more sparse version, containing 1% of the original observations. C, simulating significant heterogeneity in sequencing depth by restoring 100 cells from two populations to their original sequencing depth. D, the same dataset, but using the cell subsampling approach. E, simulating significant heterogenetiy in gene variance by increasing counts for 10 genes, using a Poisson distribution with lambda values 10x larger than the largest observed mean count value across genes. F, the same dataset, using the gene subsampling appraoch.](figures_and_panels/Figure_dot1.png){width=400px}
+
+![**Visualizing Silver standard and sponge results by clusters, total coutns, and number of zero values.** A-B, The Silver standard dataset[@freytag2018comparison] was visualized using spectral embedding (A) and UMAP (B). The sponge dataset[@musser2021profiling] was visualized using spectral embedding (C), tSNE (D),   and GLM-PCA (E).](figures_and_panels/Figure_dot2.png){width=500px}
+
+\newpage
+
+# Supplemental Table
+
+```{r supp-table,include=T}
+library(kableExtra)
+library(dplyr)
+
+num_cells <- c(925,4310,10106)
+names <- c("Gold standard","Silver standard","sponge")
+scanpy <- round(c(6.546992063522339,9.666759967803955,24.93138313293457),1)
+count_py <- round(c(13.912935972213745,26.995082139968872,390.3747658729553),1)
+seurat <- round(c(14.60392,27.64198,1.246575*60),1)
+count_R <- round(c(14.78437,1.771929*60,14.29168*60),1)
+
+kable(data.frame(names,num_cells,count_py,scanpy,count_R,seurat),col.names=c("dataset","n. cells","countland-py","scanpy","countland-R","Seurat"),caption = "Run times across programs and datasets in seconds.") %>%
+    kable_styling(latex_options = "hold_position")
+```
+
+# References
