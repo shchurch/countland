@@ -2,9 +2,9 @@
 
 Tools for analyzing biological count data, especially from single cell RNA-seq. 
 
-Please see our manuscript for more details:
+Please see our [manuscript](https://www.biorxiv.org/content/10.1101/2022.06.01.494334v1) for more details:
 
-> Church et al. 2022. Normalizing need not be the norm: count-based math for analyzing single-cell data. _in prep_
+> Church et al. 2022. Normalizing need not be the norm: count-based math for analyzing single-cell data. _bioRxiv_ https://doi.org/10.1101/2022.06.01.494334
 
 `countland` is implemented in both `R` and `python`. The code for each is included in this repository.
 
