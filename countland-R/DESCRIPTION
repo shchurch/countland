@@ -24,6 +24,8 @@ Description: A set of functions for applying a
     and encourage users and developers to fork the code for 
     their own purposes. 
 License: MIT + file LICENSE
+URL: https://github.com/shchurch/countland
+BugReports: https://github.com/shchurch/countland/issues
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.2
