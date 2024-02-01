@@ -1,6 +1,6 @@
 Package: countland
 Title: Analysis of Biological Count Data, Especially from Single-Cell RNA-Seq
-Version: 0.1.1
+Version: 0.1.2
 Authors@R: 
     person("Church", "Samuel H.", , "samuelhchurch@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-8451-103X"))
@@ -26,7 +26,7 @@ Description: A set of functions for applying a
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.2
+RoxygenNote: 7.3.0
 URL: https://github.com/shchurch/countland
 BugReports: https://github.com/shchurch/countland/issues
 Imports:

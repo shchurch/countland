@@ -6,7 +6,7 @@
 #' @return matrix of eigenvectors
 ScikitManifoldSpectralEmbedding <- function(A,n_components){
 	# calculate normalized graph laplacian using igraph
-	Ai <- igraph::as.undirected(igraph::graph.adjacency(A,weighted=T))
+	Ai <- igraph::graph_from_adjacency_matrix(A,mode="undirected",weighted=T,diag=F)
 	L <- igraph::laplacian_matrix(Ai,normalized=T)
 	L <- L * -1 # flip sign to match scikit
 
